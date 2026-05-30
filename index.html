@@ -1,0 +1,1645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NB Cakes & Desserts — POS</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --bg:      #faf8f5;
+  --bg2:     #f3efe8;
+  --panel:   #ffffff;
+  --panel2:  #fdf9f4;
+  --border:  #e8e0d0;
+  --border2: #d4c9b0;
+  --gold:    #c8860a;
+  --gold2:   #e6a020;
+  --gold3:   #fff3d6;
+  --choc:    #3d1f0a;
+  --choc2:   #5c3015;
+  --red:     #c0392b;
+  --green:   #1e7e50;
+  --blue:    #1a6b9a;
+  --purple:  #6b3fa0;
+  --text:    #1a1208;
+  --text2:   #4a3520;
+  --muted:   #8a7560;
+  --muted2:  #b8a890;
+  --white:   #ffffff;
+  --shadow:  0 2px 12px rgba(61,31,10,.08);
+  --shadow2: 0 4px 24px rgba(61,31,10,.13);
+  --radius:  10px;
+  --radius2: 6px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{font-size:15px;scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased}
+
+/* ─── SCROLLBAR ─── */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* ─── LOGIN ─── */
+#loginScreen{position:fixed;inset:0;background:linear-gradient(135deg,#fdf6e3 0%,#f5e6c8 40%,#ede0c4 100%);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px}
+.login-box{background:var(--white);border-radius:20px;box-shadow:0 8px 48px rgba(61,31,10,.18);padding:40px 36px;width:100%;max-width:380px;text-align:center}
+.login-logo{font-family:'Playfair Display',serif;font-size:2.2rem;font-weight:900;color:var(--choc);line-height:1}
+.login-logo span{color:var(--gold);display:block;font-size:1rem;font-weight:400;font-family:'DM Sans',sans-serif;letter-spacing:.15em;text-transform:uppercase;margin-top:4px}
+.pin-dots{display:flex;gap:12px;justify-content:center;margin:24px 0 20px}
+.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--border2);background:transparent;transition:.2s}
+.pin-dot.filled{background:var(--gold);border-color:var(--gold)}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.pin-btn{background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--radius);padding:14px;font-size:1.3rem;font-family:'DM Sans',sans-serif;font-weight:600;color:var(--choc);cursor:pointer;transition:.15s;-webkit-tap-highlight-color:transparent}
+.pin-btn:hover{background:var(--gold3);border-color:var(--gold);color:var(--gold)}
+.pin-btn:active{transform:scale(.95)}
+.pin-btn.danger{color:var(--red);font-size:.85rem}
+.pin-cancel{background:transparent;border:1.5px solid var(--border);border-radius:var(--radius2);padding:10px 20px;font-size:.85rem;color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:4px;width:100%}
+.pin-cancel:hover{border-color:var(--red);color:var(--red)}
+.role-btns{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+.role-btn{background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--radius);padding:14px 20px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.95rem;color:var(--text2);cursor:pointer;transition:.15s;text-align:left;display:flex;align-items:center;gap:10px}
+.role-btn:hover{background:var(--gold3);border-color:var(--gold);color:var(--choc)}
+.role-btn .role-icon{font-size:1.3rem}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+.shake{animation:shake .4s ease}
+
+/* ─── HEADER ─── */
+#appScreen{display:none;min-height:100vh;flex-direction:column}
+#appScreen.show{display:flex}
+#header{background:var(--choc);height:56px;display:flex;align-items:center;padding:0 20px;gap:16px;position:sticky;top:0;z-index:200;box-shadow:0 2px 12px rgba(0,0,0,.25)}
+.hdr-logo{font-family:'Playfair Display',serif;font-size:1.25rem;font-weight:900;color:var(--white);white-space:nowrap}
+.hdr-logo span{color:var(--gold2)}
+.hdr-branch{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:3px 12px;font-size:.78rem;font-weight:600;color:var(--gold2);letter-spacing:.05em;white-space:nowrap}
+.hdr-spacer{flex:1}
+.hdr-sync{font-size:.78rem;font-weight:600;padding:3px 10px;border-radius:20px;white-space:nowrap}
+.hdr-sync.live{background:rgba(30,126,80,.25);color:#5ddc9a;border:1px solid rgba(93,220,154,.3)}
+.hdr-sync.off{background:rgba(192,57,43,.25);color:#ff8070;border:1px solid rgba(255,128,112,.3)}
+.hdr-clock{font-family:'Space Mono',monospace;font-size:.82rem;color:rgba(255,255,255,.7);white-space:nowrap}
+.hdr-role{background:var(--gold);color:var(--choc);font-size:.75rem;font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap;letter-spacing:.05em}
+.hdr-logout{background:transparent;border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.8);border-radius:var(--radius2);padding:5px 12px;font-size:.78rem;cursor:pointer;font-family:'DM Sans',sans-serif;transition:.15s;white-space:nowrap}
+.hdr-logout:hover{background:rgba(255,255,255,.15);color:var(--white)}
+
+/* ─── NAV TABS ─── */
+#navBar{background:var(--panel);border-bottom:2px solid var(--border);display:flex;overflow-x:auto;position:sticky;top:56px;z-index:190;scrollbar-width:none}
+#navBar::-webkit-scrollbar{display:none}
+.nav-tab{padding:14px 20px;font-size:.87rem;font-weight:600;color:var(--muted);cursor:pointer;white-space:nowrap;border-bottom:2.5px solid transparent;margin-bottom:-2px;transition:.15s;font-family:'DM Sans',sans-serif;-webkit-tap-highlight-color:transparent;display:flex;align-items:center;gap:6px}
+.nav-tab:hover{color:var(--text2);background:var(--bg2)}
+.nav-tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+.nav-tab.adm-only{display:none}
+
+/* ─── MAIN ─── */
+#mainContent{flex:1;padding:20px;max-width:1500px;width:100%;margin:0 auto}
+
+/* ─── STAT CARDS ─── */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.stat-card{background:var(--panel);border:1.5px solid var(--border);border-radius:var(--radius);padding:18px 20px;border-left:4px solid var(--gold);box-shadow:var(--shadow)}
+.stat-card.b-red{border-left-color:var(--red)}
+.stat-card.b-blue{border-left-color:var(--blue)}
+.stat-card.b-green{border-left-color:var(--green)}
+.stat-num{font-family:'Playfair Display',serif;font-size:2rem;font-weight:700;color:var(--choc);line-height:1.1}
+.stat-label{font-size:.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-top:4px}
+.stat-sub{font-size:.78rem;color:var(--muted2);margin-top:2px}
+
+/* ─── TABLE WRAPPER ─── */
+.tbl-wrap{background:var(--panel);border:1.5px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);margin-bottom:20px}
+.tbl-head{padding:14px 20px;display:flex;align-items:center;gap:10px;background:var(--panel2);border-bottom:1.5px solid var(--border);flex-wrap:wrap}
+.tbl-title{font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:var(--choc);flex:1}
+.tbl-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tbl-wrap table{width:100%;border-collapse:collapse;font-size:.87rem}
+.tbl-wrap th{background:var(--bg2);padding:10px 14px;text-align:left;font-size:.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;white-space:nowrap;border-bottom:1.5px solid var(--border)}
+.tbl-wrap td{padding:11px 14px;border-bottom:1px solid var(--border);color:var(--text2);vertical-align:middle}
+.tbl-wrap tr:last-child td{border-bottom:none}
+.tbl-wrap tr:hover td{background:var(--bg2)}
+
+/* ─── BADGES ─── */
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.72rem;font-weight:700;letter-spacing:.04em}
+.badge-brownie{background:#fff3e0;color:#b96a00}
+.badge-cake{background:#fce4ec;color:#c2185b}
+.badge-tresleche{background:#e8f5e9;color:#2e7d32}
+.badge-bun{background:#fff8e1;color:#f57f17}
+.badge-cheesecake{background:#f3e5f5;color:#6a1b9a}
+.badge-berliner{background:#e3f2fd;color:#1565c0}
+.badge-drinks{background:#e0f7fa;color:#00697a}
+.badge-special{background:#fce4ec;color:#880e4f}
+.badge-ok{background:#e8f5e9;color:var(--green)}
+.badge-low{background:#ffebee;color:var(--red);font-weight:700}
+.badge-paid{background:#e8f5e9;color:var(--green)}
+.badge-b1{background:#e3f2fd;color:var(--blue)}
+.badge-b2{background:#fff3e0;color:#b96a00}
+.badge-admin{background:var(--gold3);color:var(--gold)}
+
+/* ─── BUTTONS ─── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:var(--radius2);font-family:'DM Sans',sans-serif;font-weight:600;font-size:.87rem;cursor:pointer;border:1.5px solid transparent;transition:.15s;text-decoration:none;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+.btn:active{transform:scale(.97)}
+.btn-gold{background:var(--gold);color:var(--white);border-color:var(--gold)}
+.btn-gold:hover{background:var(--gold2);border-color:var(--gold2)}
+.btn-choc{background:var(--choc);color:var(--white);border-color:var(--choc)}
+.btn-choc:hover{background:var(--choc2);border-color:var(--choc2)}
+.btn-outline{background:transparent;color:var(--text2);border-color:var(--border2)}
+.btn-outline:hover{background:var(--bg2);border-color:var(--gold)}
+.btn-danger{background:#ffebee;color:var(--red);border-color:#ffcdd2}
+.btn-danger:hover{background:var(--red);color:var(--white)}
+.btn-green{background:#e8f5e9;color:var(--green);border-color:#c8e6c9}
+.btn-green:hover{background:var(--green);color:var(--white)}
+.btn-blue{background:#e3f2fd;color:var(--blue);border-color:#bbdefb}
+.btn-blue:hover{background:var(--blue);color:var(--white)}
+.btn-purple{background:#f3e5f5;color:var(--purple);border-color:#e1bee7}
+.btn-purple:hover{background:var(--purple);color:var(--white)}
+.btn-sm{padding:5px 12px;font-size:.8rem}
+
+/* ─── INPUTS ─── */
+input,select,textarea{font-family:'DM Sans',sans-serif;font-size:.87rem;background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--radius2);padding:9px 12px;color:var(--text);transition:.15s;width:100%;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--gold);background:var(--white);box-shadow:0 0 0 3px rgba(200,134,10,.1)}
+input::placeholder,textarea::placeholder{color:var(--muted2)}
+select{cursor:pointer}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.form-row.one{grid-template-columns:1fr}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group label{font-size:.78rem;font-weight:600;color:var(--text2);letter-spacing:.04em;text-transform:uppercase}
+
+/* ─── MODAL ─── */
+.modal-overlay{position:fixed;inset:0;background:rgba(26,18,8,.6);backdrop-filter:blur(4px);z-index:500;display:none;align-items:center;justify-content:center;padding:16px}
+.modal-overlay.show{display:flex}
+.modal{background:var(--panel);border-radius:14px;box-shadow:0 12px 60px rgba(61,31,10,.25);width:100%;max-width:560px;max-height:90vh;overflow-y:auto;animation:fadeUp .25s ease}
+.modal-lg{max-width:720px}
+.modal-xl{max-width:900px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.modal-hdr{padding:20px 24px 16px;border-bottom:1.5px solid var(--border);display:flex;align-items:center;gap:10px}
+.modal-title{font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;color:var(--choc);flex:1}
+.modal-close{background:var(--bg2);border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:1rem;color:var(--muted);display:flex;align-items:center;justify-content:center;transition:.15s}
+.modal-close:hover{background:var(--red);color:var(--white)}
+.modal-body{padding:20px 24px}
+.modal-footer{padding:14px 24px;border-top:1.5px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+
+/* ─── TOAST ─── */
+#toastZone{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none;max-width:320px}
+.toast{background:var(--panel);border:1.5px solid var(--border);border-radius:var(--radius);padding:12px 16px;box-shadow:var(--shadow2);font-size:.87rem;color:var(--text2);animation:toastIn .3s ease;pointer-events:all;display:flex;align-items:flex-start;gap:10px;border-left:4px solid var(--gold)}
+.toast.warn{border-left-color:var(--gold2)}
+.toast.err{border-left-color:var(--red)}
+.toast.ok{border-left-color:var(--green)}
+@keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+
+/* ─── SECTION TITLE ─── */
+.sec-title{font-family:'Playfair Display',serif;font-size:1.35rem;font-weight:700;color:var(--choc);margin-bottom:16px;display:flex;align-items:center;gap:10px}
+.sec-title small{font-family:'DM Sans',sans-serif;font-size:.8rem;font-weight:400;color:var(--muted);letter-spacing:.05em;text-transform:uppercase}
+
+/* ─── INFO BOX ─── */
+.info-box{background:var(--gold3);border:1.5px solid #e8c87a;border-left:4px solid var(--gold);border-radius:var(--radius2);padding:12px 16px;font-size:.85rem;color:var(--text2);margin-bottom:16px;line-height:1.5}
+
+/* ─── BILLING ─── */
+#billingWrap{display:grid;grid-template-columns:1fr 380px;gap:16px;align-items:start}
+.menu-search-row{display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.menu-search-row input{flex:1;min-width:160px}
+.cat-filters{display:flex;gap:8px;overflow-x:auto;margin-bottom:14px;padding-bottom:4px;scrollbar-width:none}
+.cat-filters::-webkit-scrollbar{display:none}
+.cat-btn{padding:6px 16px;border-radius:20px;border:1.5px solid var(--border);background:var(--panel);color:var(--muted);font-size:.82rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:.15s;-webkit-tap-highlight-color:transparent}
+.cat-btn.active{background:var(--gold);color:var(--white);border-color:var(--gold)}
+.cat-btn:hover:not(.active){border-color:var(--gold);color:var(--gold)}
+.menu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px}
+.menu-card{background:var(--panel);border:1.5px solid var(--border);border-radius:var(--radius);padding:14px;cursor:pointer;transition:.2s;position:relative;box-shadow:var(--shadow)}
+.menu-card:hover{border-color:var(--gold);box-shadow:0 4px 20px rgba(200,134,10,.15);transform:translateY(-1px)}
+.menu-card.oos{opacity:.5;pointer-events:none;filter:grayscale(.5)}
+.menu-card.low-stock .mc-price::after{content:'⚠';font-size:.75rem;margin-left:4px;color:var(--gold2)}
+.mc-cat{margin-bottom:6px}
+.mc-name{font-size:.9rem;font-weight:700;color:var(--text);margin-bottom:6px;line-height:1.3}
+.mc-price{font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:700;color:var(--gold);margin-bottom:4px}
+.mc-stock{font-size:.72rem;color:var(--muted2)}
+
+/* ─── CART ─── */
+.cart-panel{background:var(--panel);border:1.5px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow2);position:sticky;top:78px;max-height:calc(100vh - 100px);display:flex;flex-direction:column;overflow:hidden}
+.cart-hdr{padding:14px 16px;border-bottom:1.5px solid var(--border);background:var(--choc);display:flex;align-items:center;gap:8px}
+.cart-hdr-title{font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:var(--white);flex:1}
+.cart-items{flex:1;overflow-y:auto;padding:10px}
+.cart-empty{text-align:center;padding:40px 20px;color:var(--muted2);font-size:.87rem}
+.cart-empty span{font-size:2rem;display:block;margin-bottom:10px}
+.cart-item{display:flex;align-items:center;gap:8px;padding:8px;border-radius:var(--radius2);background:var(--bg2);margin-bottom:6px;border:1px solid var(--border)}
+.ci-name{flex:1;font-size:.85rem;font-weight:600;color:var(--text2);line-height:1.3}
+.ci-price{font-size:.8rem;color:var(--muted);margin-top:1px}
+.qty-ctrl{display:flex;align-items:center;gap:4px}
+.qty-btn{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--border2);background:var(--panel);color:var(--text2);cursor:pointer;font-size:.95rem;display:flex;align-items:center;justify-content:center;transition:.15s;-webkit-tap-highlight-color:transparent;flex-shrink:0}
+.qty-btn:hover{background:var(--gold);color:var(--white);border-color:var(--gold)}
+.qty-val{font-size:.9rem;font-weight:700;color:var(--text);min-width:22px;text-align:center}
+.ci-total{font-family:'Space Mono',monospace;font-size:.82rem;font-weight:700;color:var(--choc);min-width:50px;text-align:right}
+.cart-footer{border-top:1.5px solid var(--border);padding:12px 14px;background:var(--panel2)}
+.cart-customer{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:8px}
+.cart-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:.87rem;color:var(--text2)}
+.cart-row.total-row{font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:700;color:var(--choc);padding-top:8px;margin-top:4px;border-top:2px solid var(--border);padding-bottom:8px}
+.cart-row span:last-child{font-family:'Space Mono',monospace}
+
+/* ─── INVOICE PRINT ─── */
+.inv-print{background:#fff;color:#111;font-family:'DM Sans',sans-serif;font-size:.87rem;padding:24px}
+.inv-logo-txt{font-family:'Playfair Display',serif;font-size:1.6rem;font-weight:900;color:#3d1f0a}
+.inv-logo-txt span{color:#c8860a}
+.inv-meta{font-size:.78rem;color:#555;margin-top:2px}
+.inv-table{width:100%;border-collapse:collapse;margin:14px 0;font-size:.82rem}
+.inv-table th{background:#f5e6c8;padding:7px 10px;text-align:left;font-size:.75rem;color:#3d1f0a;text-transform:uppercase;letter-spacing:.05em}
+.inv-table td{padding:7px 10px;border-bottom:1px solid #e8e0d0}
+.inv-total-bar{background:#3d1f0a;color:#fff;padding:10px 14px;display:flex;justify-content:space-between;margin-top:8px;border-radius:4px}
+.inv-total-bar .lbl{font-size:.9rem;opacity:.8}
+.inv-total-bar .val{font-family:'Playfair Display',serif;font-size:1.25rem;font-weight:700;color:#f5c518}
+.paid-stamp{display:inline-block;border:3px solid #1e7e50;color:#1e7e50;padding:4px 14px;border-radius:4px;font-weight:900;font-size:.95rem;letter-spacing:.1em;transform:rotate(-5deg);margin-left:10px}
+
+/* ─── SEARCH / FILTER ROW ─── */
+.filter-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.filter-row input,.filter-row select{flex:1;min-width:140px;max-width:220px}
+
+/* ─── DASHBOARD LAYOUT ─── */
+.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+
+/* ─── STOCK TRANSFER ─── */
+.transfer-preview{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.tprev-box{background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--radius);padding:14px;text-align:center}
+.tprev-box.b1{border-top:3px solid var(--blue)}
+.tprev-box.b2{border-top:3px solid var(--gold)}
+.tprev-num{font-family:'Playfair Display',serif;font-size:2rem;font-weight:700;color:var(--choc)}
+.tprev-num.danger{color:var(--red)}
+.tprev-label{font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-top:2px}
+
+/* ─── REPORTS ─── */
+.report-sections{display:flex;flex-direction:column;gap:20px}
+
+/* ─── ADMIN PANEL ─── */
+.admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.settings-card{background:var(--panel);border:1.5px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
+.settings-card h3{font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:var(--choc);margin-bottom:14px;padding-bottom:10px;border-bottom:1.5px solid var(--border)}
+.gst-big{font-family:'Playfair Display',serif;font-size:3rem;font-weight:900;color:var(--gold);line-height:1}
+.gst-lbl{font-size:.8rem;color:var(--muted);text-transform:uppercase;font-weight:600;letter-spacing:.06em;margin-bottom:12px}
+
+/* ─── RESPONSIVE ─── */
+@media(max-width:960px){
+  .stat-grid{grid-template-columns:1fr 1fr}
+  #billingWrap{grid-template-columns:1fr}
+  .cart-panel{position:static;max-height:none}
+  .dash-grid{grid-template-columns:1fr}
+  .admin-grid{grid-template-columns:1fr}
+  .transfer-preview{grid-template-columns:1fr 1fr}
+}
+@media(max-width:600px){
+  #mainContent{padding:12px}
+  .stat-grid{grid-template-columns:1fr 1fr;gap:10px}
+  .stat-card{padding:14px}
+  .stat-num{font-size:1.5rem}
+  .hdr-clock,.hdr-sync{display:none}
+  #header{padding:0 12px;gap:10px}
+  .form-row{grid-template-columns:1fr}
+  .modal{border-radius:14px 14px 0 0;margin-top:auto;max-height:92vh}
+  .modal-overlay{align-items:flex-end;padding:0}
+  .tbl-wrap{overflow-x:auto}
+  .tbl-wrap table{min-width:560px}
+  .menu-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}
+  .admin-grid{grid-template-columns:1fr}
+  .hdr-logo{font-size:1rem}
+}
+@media print{
+  body>*:not(#invoicePrintFrame){display:none!important}
+  #invoicePrintFrame{display:block!important}
+}
+.spin{display:inline-block;animation:spinA .7s linear infinite;vertical-align:middle}
+@keyframes spinA{to{transform:rotate(360deg)}}
+.text-center{text-align:center}
+.text-muted{color:var(--muted)}
+.text-gold{color:var(--gold)}
+.text-green{color:var(--green)}
+.text-red{color:var(--red)}
+.font-mono{font-family:'Space Mono',monospace}
+.mt-4{margin-top:16px}
+.mb-2{margin-bottom:8px}
+.no-data-row td{text-align:center;color:var(--muted);padding:28px!important;font-style:italic}
+hr.divider{border:none;border-top:1.5px solid var(--border);margin:16px 0}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════ LOGIN ═══════════════════════════════ -->
+<div id="loginScreen">
+  <div class="login-box" id="loginBox">
+    <div class="login-logo">NB <span style="font-family:'Playfair Display',serif;color:var(--gold);font-size:1.4rem">Cakes &amp; Desserts</span></div>
+    <p style="font-size:.8rem;color:var(--muted);margin:8px 0 20px;text-transform:uppercase;letter-spacing:.1em">Point of Sale System</p>
+    <div id="loginStep1" class="">
+      <p style="font-size:.87rem;color:var(--text2);margin-bottom:14px;font-weight:500">Select your role to continue</p>
+      <div class="role-btns">
+        <button class="role-btn" onclick="selectRole('admin')"><span class="role-icon">👑</span><div><div style="font-weight:700">Administrator</div><div style="font-size:.78rem;color:var(--muted);font-weight:400">Full access to all features</div></div></button>
+        <button class="role-btn" id="roleB1Btn" onclick="selectRole('b1')"><span class="role-icon">🏪</span><div><div id="roleB1Name" style="font-weight:700">Branch 1</div><div style="font-size:.78rem;color:var(--muted);font-weight:400">Billing &amp; dashboard</div></div></button>
+        <button class="role-btn" id="roleB2Btn" onclick="selectRole('b2')"><span class="role-icon">🏪</span><div><div id="roleB2Name" style="font-weight:700">Branch 2</div><div style="font-size:.78rem;color:var(--muted);font-weight:400">Billing &amp; dashboard</div></div></button>
+      </div>
+    </div>
+    <div id="loginStep2" style="display:none">
+      <p style="font-size:.87rem;color:var(--text2);margin-bottom:8px;font-weight:500" id="pinPrompt">Enter PIN</p>
+      <div class="pin-dots" id="pinDots">
+        <div class="pin-dot" id="d0"></div><div class="pin-dot" id="d1"></div>
+        <div class="pin-dot" id="d2"></div><div class="pin-dot" id="d3"></div>
+      </div>
+      <div class="pin-pad" id="pinPad">
+        <button class="pin-btn" onclick="pinPress('1')">1</button>
+        <button class="pin-btn" onclick="pinPress('2')">2</button>
+        <button class="pin-btn" onclick="pinPress('3')">3</button>
+        <button class="pin-btn" onclick="pinPress('4')">4</button>
+        <button class="pin-btn" onclick="pinPress('5')">5</button>
+        <button class="pin-btn" onclick="pinPress('6')">6</button>
+        <button class="pin-btn" onclick="pinPress('7')">7</button>
+        <button class="pin-btn" onclick="pinPress('8')">8</button>
+        <button class="pin-btn" onclick="pinPress('9')">9</button>
+        <button class="pin-btn danger" onclick="pinClear()">✕</button>
+        <button class="pin-btn" onclick="pinPress('0')">0</button>
+        <button class="pin-btn danger" onclick="pinBack()">⌫</button>
+      </div>
+      <button class="pin-cancel" onclick="backToRoles()">← Back to role selection</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════ APP ═══════════════════════════════ -->
+<div id="appScreen">
+  <header id="header">
+    <div class="hdr-logo">NB <span>Cakes</span></div>
+    <div class="hdr-branch" id="hdrBranch">—</div>
+    <div class="hdr-spacer"></div>
+    <div class="hdr-sync live" id="syncBadge">● LIVE</div>
+    <div class="hdr-clock" id="hdClock">00:00:00</div>
+    <div class="hdr-role" id="hdrRole">—</div>
+    <button class="hdr-logout" onclick="logout()">Logout</button>
+  </header>
+
+  <nav id="navBar">
+    <div class="nav-tab" data-tab="dashboard" onclick="switchTab('dashboard')">📊 Dashboard</div>
+    <div class="nav-tab" data-tab="billing" onclick="switchTab('billing')">🧾 Billing</div>
+    <div class="nav-tab adm-only" data-tab="stock" onclick="switchTab('stock')">📦 Stock Entry</div>
+    <div class="nav-tab adm-only" data-tab="transfer" onclick="switchTab('transfer')">🔄 Transfer</div>
+    <div class="nav-tab adm-only" data-tab="inventory" onclick="switchTab('inventory')">🗂 Inventory</div>
+    <div class="nav-tab adm-only" data-tab="history" onclick="switchTab('history')">📋 Sales</div>
+    <div class="nav-tab adm-only" data-tab="reports" onclick="switchTab('reports')">📈 Reports</div>
+    <div class="nav-tab adm-only" data-tab="admin" onclick="switchTab('admin')">⚙ Admin</div>
+  </nav>
+
+  <div id="mainContent">
+
+    <!-- ─── DASHBOARD ─── -->
+    <div id="tab-dashboard" class="tab-content" style="display:none">
+      <div class="sec-title">📊 Dashboard <small id="dashBranchLabel"></small></div>
+      <div class="stat-grid" id="dashStats">
+        <div class="stat-card"><div class="stat-num text-gold" id="ds-rev">₹0</div><div class="stat-label">Today's Revenue</div><div class="stat-sub" id="ds-revSub"></div></div>
+        <div class="stat-card b-red"><div class="stat-num" id="ds-orders">0</div><div class="stat-label">Orders Today</div><div class="stat-sub" id="ds-ordSub"></div></div>
+        <div class="stat-card b-blue"><div class="stat-num" id="ds-avg">₹0</div><div class="stat-label">Avg. Order Value</div><div class="stat-sub"></div></div>
+        <div class="stat-card b-green"><div class="stat-num" style="font-size:1.2rem" id="ds-top">—</div><div class="stat-label">Top Seller Today</div><div class="stat-sub" id="ds-topSub"></div></div>
+      </div>
+      <div class="dash-grid">
+        <div class="tbl-wrap">
+          <div class="tbl-head"><div class="tbl-title">Sales by Category</div></div>
+          <table><thead><tr><th>Category</th><th>Qty</th><th>Revenue</th></tr></thead>
+          <tbody id="dashCatTbl"><tr class="no-data-row"><td colspan="3">No sales today</td></tr></tbody></table>
+        </div>
+        <div class="tbl-wrap">
+          <div class="tbl-head"><div class="tbl-title">Low Stock Alerts</div></div>
+          <table><thead><tr><th>Item</th><th>Branch</th><th>Stock</th><th>Status</th></tr></thead>
+          <tbody id="dashLowTbl"><tr class="no-data-row"><td colspan="4">All stock OK</td></tr></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── BILLING ─── -->
+    <div id="tab-billing" class="tab-content" style="display:none">
+      <div id="billingWrap">
+        <div>
+          <div class="sec-title" id="billBranchTitle">🧾 Billing <small></small></div>
+          <div class="menu-search-row">
+            <input type="text" id="menuSearch" placeholder="🔍 Search items..." oninput="renderMenuGrid()"/>
+          </div>
+          <div class="cat-filters" id="catFilters"></div>
+          <div class="menu-grid" id="menuGrid"></div>
+        </div>
+        <div class="cart-panel">
+          <div class="cart-hdr">
+            <div class="cart-hdr-title">🛒 Cart</div>
+            <button class="btn btn-sm" style="background:rgba(255,255,255,.15);color:var(--white);border-color:transparent" onclick="clearCart()">Clear</button>
+          </div>
+          <div class="cart-customer" style="padding:10px 14px;border-bottom:1px solid var(--border)">
+            <input type="text" id="custName" placeholder="Customer name (optional)"/>
+            <input type="text" id="custPhone" placeholder="Phone (optional)"/>
+          </div>
+          <div class="cart-items" id="cartItems"><div class="cart-empty"><span>🍰</span>Add items to cart</div></div>
+          <div class="cart-footer">
+            <div class="cart-row"><span>Subtotal</span><span id="cartSub">₹0.00</span></div>
+            <div class="cart-row"><span id="gstLbl">GST (5%)</span><span id="cartGst">₹0.00</span></div>
+            <div class="cart-row total-row"><span>TOTAL</span><span id="cartTotal">₹0.00</span></div>
+            <button class="btn btn-gold" style="width:100%;justify-content:center;margin-top:8px;padding:12px" onclick="generateInvoice()">🧾 Generate Invoice</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── STOCK ENTRY ─── -->
+    <div id="tab-stock" class="tab-content" style="display:none">
+      <div class="sec-title">📦 Stock Entry</div>
+      <div class="info-box">Enter daily stock quantities for each branch. Leave blank to skip. This sets the current stock count (not adds to it).</div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:8px"><label style="font-size:.85rem;font-weight:600;color:var(--text2)">Date:</label><input type="date" id="stockDate" style="width:160px"/></div>
+        <button class="btn btn-gold" onclick="saveStockEntry()">💾 Save Entry</button>
+      </div>
+      <div class="tbl-wrap">
+        <div class="tbl-head"><div class="tbl-title">Stock Entry Table</div></div>
+        <div style="overflow-x:auto"><table id="stockEntryTable">
+          <thead><tr><th>Item</th><th>Category</th><th>Price</th><th id="se-b1h">Branch 1 — Set To</th><th id="se-b2h">Branch 2 — Set To</th><th>Curr B1</th><th>Curr B2</th></tr></thead>
+          <tbody id="stockEntryBody"></tbody>
+        </table></div>
+      </div>
+      <div class="tbl-wrap" style="margin-top:20px">
+        <div class="tbl-head">
+          <div class="tbl-title">Stock Entry Log</div>
+          <div class="tbl-tools"><select id="stockLogFilter" style="width:auto" onchange="renderStockLog()"><option value="">All Dates</option></select></div>
+        </div>
+        <table><thead><tr><th>Date</th><th>Item</th><th>Category</th><th>Br.1 Set</th><th>Br.2 Set</th><th>Saved At</th><th>By</th></tr></thead>
+        <tbody id="stockLogBody"></tbody></table>
+      </div>
+    </div>
+
+    <!-- ─── STOCK TRANSFER ─── -->
+    <div id="tab-transfer" class="tab-content" style="display:none">
+      <div class="sec-title">🔄 Stock Transfer</div>
+      <div class="info-box">Transfer stock between branches. The quantity is deducted from the source branch and added to the destination branch in real-time.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
+        <div>
+          <div class="tbl-wrap">
+            <div class="tbl-head"><div class="tbl-title">New Transfer</div></div>
+            <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
+              <div class="form-group"><label>Item</label><select id="tfItem" onchange="updateTransferPreview()"><option value="">Select item...</option></select></div>
+              <div class="transfer-preview" id="tfPreview" style="display:none">
+                <div class="tprev-box b1"><div class="tprev-num" id="tfB1Curr">0</div><div class="tprev-label" id="tfB1CurrLbl">Branch 1 Current</div></div>
+                <div class="tprev-box b2"><div class="tprev-num" id="tfB2Curr">0</div><div class="tprev-label" id="tfB2CurrLbl">Branch 2 Current</div></div>
+              </div>
+              <div class="form-group"><label>Direction</label>
+                <select id="tfDir" onchange="updateTransferPreview()">
+                  <option value="1to2" id="tfDir1to2Opt">Branch 1 → Branch 2</option>
+                  <option value="2to1" id="tfDir2to1Opt">Branch 2 → Branch 1</option>
+                </select>
+              </div>
+              <div class="form-group"><label>Quantity</label><input type="number" id="tfQty" min="1" placeholder="0" oninput="updateTransferPreview()"/></div>
+              <div id="tfAfterWrap" style="display:none">
+                <div style="font-size:.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">After Transfer</div>
+                <div class="transfer-preview">
+                  <div class="tprev-box b1"><div class="tprev-num" id="tfB1After">—</div><div class="tprev-label" id="tfB1AfterLbl">Branch 1 After</div></div>
+                  <div class="tprev-box b2"><div class="tprev-num" id="tfB2After">—</div><div class="tprev-label" id="tfB2AfterLbl">Branch 2 After</div></div>
+                </div>
+              </div>
+              <div class="form-group"><label>Note / Reason</label><input type="text" id="tfNote" placeholder="Optional reason..."/></div>
+              <button class="btn btn-purple" onclick="confirmTransfer()">✓ Confirm Transfer</button>
+            </div>
+          </div>
+        </div>
+        <div class="tbl-wrap">
+          <div class="tbl-head"><div class="tbl-title">Transfer History</div></div>
+          <table><thead><tr><th>Date & Time</th><th>Item</th><th>Qty</th><th>From</th><th>To</th><th>Note</th></tr></thead>
+          <tbody id="transferLogBody"></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── INVENTORY ─── -->
+    <div id="tab-inventory" class="tab-content" style="display:none">
+      <div class="sec-title">🗂 Inventory</div>
+      <div class="filter-row">
+        <input type="text" id="invSearch" placeholder="🔍 Search items..." oninput="renderInventory()"/>
+        <select id="invCatFilter" onchange="renderInventory()"><option value="">All Categories</option></select>
+        <button class="btn btn-gold" onclick="openProductModal()">＋ Add Product</button>
+      </div>
+      <div class="tbl-wrap">
+        <table><thead><tr><th>Item</th><th>Category</th><th>Price</th><th id="inv-b1h">Stock Br.1</th><th id="inv-b2h">Stock Br.2</th><th>Alert At</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="inventoryBody"></tbody></table>
+      </div>
+    </div>
+
+    <!-- ─── SALES HISTORY ─── -->
+    <div id="tab-history" class="tab-content" style="display:none">
+      <div class="sec-title">📋 Sales History</div>
+      <div class="filter-row">
+        <select id="histBranchFilter" onchange="renderHistory()"><option value="">All Branches</option><option value="b1">Branch 1</option><option value="b2">Branch 2</option></select>
+        <input type="date" id="histDateFilter" onchange="renderHistory()"/>
+        <button class="btn btn-green" onclick="exportCSV()">⬇ Export CSV</button>
+      </div>
+      <div class="tbl-wrap">
+        <table><thead><tr><th>Invoice #</th><th>Date & Time</th><th>Branch</th><th>Customer</th><th>Items</th><th>GST%</th><th>Total</th><th>Status</th><th>Invoice</th></tr></thead>
+        <tbody id="historyBody"></tbody></table>
+      </div>
+    </div>
+
+    <!-- ─── REPORTS ─── -->
+    <div id="tab-reports" class="tab-content" style="display:none">
+      <div class="sec-title">📈 Reports</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;align-items:flex-end">
+        <div class="form-group" style="flex:none"><label>Date</label><input type="date" id="repDate" style="width:160px"/></div>
+        <div class="form-group" style="flex:none"><label>Branch</label><select id="repBranch" style="width:160px"><option value="">All Branches</option><option value="b1">Branch 1</option><option value="b2">Branch 2</option></select></div>
+        <button class="btn btn-gold" onclick="generateReport()" style="margin-bottom:0">▶ Generate</button>
+        <button class="btn btn-green" onclick="exportExcel()" style="margin-bottom:0">📊 Excel</button>
+        <button class="btn btn-outline" onclick="printReport()" style="margin-bottom:0">🖨 Print</button>
+      </div>
+      <div class="report-sections" id="reportSections" style="display:none">
+        <div class="tbl-wrap">
+          <div class="tbl-head"><div class="tbl-title">Sales Summary</div></div>
+          <table><thead><tr><th>Metric</th><th id="rep-b1h">Branch 1</th><th id="rep-b2h">Branch 2</th><th>Total</th></tr></thead>
+          <tbody id="repSummaryBody"></tbody></table>
+        </div>
+        <div class="tbl-wrap">
+          <div class="tbl-head"><div class="tbl-title">Category Breakdown</div></div>
+          <table><thead><tr><th>Category</th><th>Qty Sold</th><th>Revenue</th></tr></thead>
+          <tbody id="repCatBody"></tbody></table>
+        </div>
+        <div class="tbl-wrap">
+          <div class="tbl-head"><div class="tbl-title">Item-wise Sales</div></div>
+          <table><thead><tr><th>Item</th><th>Category</th><th id="rep-b1ih">Qty Br.1</th><th id="rep-b2ih">Qty Br.2</th><th>Total Qty</th><th>Revenue</th></tr></thead>
+          <tbody id="repItemBody"></tbody></table>
+        </div>
+        <div class="tbl-wrap">
+          <div class="tbl-head"><div class="tbl-title">Stock Snapshot</div></div>
+          <table><thead><tr><th>Item</th><th>Category</th><th id="rep-b1sh">Stock Br.1</th><th id="rep-b2sh">Stock Br.2</th><th>Alert At</th><th>Status</th></tr></thead>
+          <tbody id="repStockBody"></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── ADMIN PANEL ─── -->
+    <div id="tab-admin" class="tab-content" style="display:none">
+      <div class="sec-title">⚙ Admin Panel</div>
+      <div class="tbl-wrap" style="margin-bottom:20px">
+        <div class="tbl-head"><div class="tbl-title">Branch Revenue Today</div></div>
+        <table><thead><tr><th>Branch</th><th>Orders</th><th>Revenue</th><th>Avg Bill</th></tr></thead>
+        <tbody id="adminRevBody"></tbody></table>
+      </div>
+      <div class="tbl-wrap" style="margin-bottom:20px">
+        <div class="tbl-head"><div class="tbl-title">Top 10 Items — All Time</div></div>
+        <table><thead><tr><th>#</th><th>Item</th><th>Qty Sold</th><th>Revenue</th></tr></thead>
+        <tbody id="adminTopBody"></tbody></table>
+      </div>
+      <div class="admin-grid">
+        <div class="settings-card">
+          <h3>🏪 Branch Names</h3>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div class="form-group"><label>Branch 1 Name</label><input type="text" id="adm-b1name" placeholder="Branch 1"/></div>
+            <div class="form-group"><label>Branch 2 Name</label><input type="text" id="adm-b2name" placeholder="Branch 2"/></div>
+            <button class="btn btn-gold" onclick="saveBranchNames()">💾 Save Branch Names</button>
+          </div>
+        </div>
+        <div class="settings-card">
+          <h3>💰 GST / Tax Settings</h3>
+          <div class="gst-big" id="gstDisplay">5%</div>
+          <div class="gst-lbl">Current GST Rate</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <input type="number" id="gstInput" placeholder="New %" style="width:100px;flex:none" min="0" max="28"/>
+            <button class="btn btn-gold" onclick="updateGST()">Update</button>
+          </div>
+          <div style="margin-top:10px;font-size:.8rem;color:var(--muted)">Common: 5% (food) · 12% · 18%</div>
+          <div class="info-box" style="margin-top:12px;font-size:.8rem">Old invoices retain their original GST rate.</div>
+        </div>
+        <div class="settings-card">
+          <h3>🔐 Change PINs</h3>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;gap:8px;align-items:center"><label style="font-size:.82rem;font-weight:600;color:var(--text2);width:90px;flex:none">Admin PIN</label><input type="password" id="pin-admin" placeholder="4 digits" maxlength="4" style="flex:1"/><button class="btn btn-sm btn-choc" onclick="updatePIN('admin')">Set</button></div>
+            <div style="display:flex;gap:8px;align-items:center"><label style="font-size:.82rem;font-weight:600;color:var(--text2);width:90px;flex:none">Branch 1</label><input type="password" id="pin-b1" placeholder="4 digits" maxlength="4" style="flex:1"/><button class="btn btn-sm btn-choc" onclick="updatePIN('b1')">Set</button></div>
+            <div style="display:flex;gap:8px;align-items:center"><label style="font-size:.82rem;font-weight:600;color:var(--text2);width:90px;flex:none">Branch 2</label><input type="password" id="pin-b2" placeholder="4 digits" maxlength="4" style="flex:1"/><button class="btn btn-sm btn-choc" onclick="updatePIN('b2')">Set</button></div>
+          </div>
+        </div>
+        <div class="settings-card">
+          <h3>📊 Quick Stats</h3>
+          <div style="display:flex;flex-direction:column;gap:8px" id="adminQuickStats">
+            <div style="display:flex;justify-content:space-between;font-size:.87rem;padding:6px 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">Total Products</span><span class="font-mono" id="qs-prods">—</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:.87rem;padding:6px 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">Total Sales</span><span class="font-mono" id="qs-sales">—</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:.87rem;padding:6px 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">All-time Revenue</span><span class="font-mono text-gold" id="qs-rev">—</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:.87rem;padding:6px 0"><span style="color:var(--muted)">Bill Counter</span><span class="font-mono" id="qs-bill">—</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /mainContent -->
+</div><!-- /appScreen -->
+
+<!-- ─── MODALS ─── -->
+<!-- Product Modal -->
+<div class="modal-overlay" id="productModal" onclick="closeModalOut(event,'productModal')">
+  <div class="modal">
+    <div class="modal-hdr"><div class="modal-title" id="productModalTitle">Add Product</div><button class="modal-close" onclick="closeModal('productModal')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-row"><div class="form-group"><label>Item Name *</label><input type="text" id="pm-name" placeholder="e.g. Classic Brownie"/></div><div class="form-group"><label>Category *</label><select id="pm-cat"><option value="brownie">Brownie's</option><option value="cake">Cakes</option><option value="tresleche">Tres Leches</option><option value="bun">Bun</option><option value="cheesecake">Mini Round Cheese Cake</option><option value="berliner">BomBeleni (Berliners)</option><option value="drinks">Dink's</option><option value="special">Special</option></select></div></div>
+      <div class="form-row"><div class="form-group"><label>Price (₹) *</label><input type="number" id="pm-price" placeholder="0"/></div><div class="form-group"><label>Low Stock Alert At</label><input type="number" id="pm-min" placeholder="5" value="5"/></div></div>
+      <div class="form-row"><div class="form-group"><label id="pm-s1lbl">Opening Stock Br.1</label><input type="number" id="pm-s1" placeholder="0" value="0"/></div><div class="form-group"><label id="pm-s2lbl">Opening Stock Br.2</label><input type="number" id="pm-s2" placeholder="0" value="0"/></div></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('productModal')">Cancel</button><button class="btn btn-gold" onclick="saveProduct()">Save Product</button></div>
+  </div>
+</div>
+
+<!-- Invoice Modal -->
+<div class="modal-overlay" id="invoiceModal" onclick="closeModalOut(event,'invoiceModal')">
+  <div class="modal modal-lg">
+    <div class="modal-hdr"><div class="modal-title">Invoice</div><button class="modal-close" onclick="closeModal('invoiceModal')">✕</button></div>
+    <div class="modal-body" id="invoiceModalBody"></div>
+    <div class="modal-footer" id="invoiceModalFoot"></div>
+  </div>
+</div>
+
+<!-- Toast Zone -->
+<div id="toastZone"></div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyD5D6FkhghmfUloFjCV8vsTmuZNk85aWpQ",
+  authDomain: "nb-database-9adcb.firebaseapp.com",
+  projectId: "nb-database-9adcb",
+  storageBucket: "nb-database-9adcb.firebasestorage.app",
+  messagingSenderId: "134605520891",
+  appId: "1:134605520891:web:89ea4ac881cb3d93a9d55e",
+  measurementId: "G-E7Y0CG818G
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// ═══════════════ DEFAULT PRODUCTS ═══════════════
+const DEF_PRODUCTS = [
+  {name:"Classic Brownie",cat:"brownie",price:60,minStock:5,stock1:0,stock2:0},
+  {name:"Double Brownie",cat:"brownie",price:110,minStock:5,stock1:0,stock2:0},
+  {name:"Triple Chocolate Brownie",cat:"brownie",price:130,minStock:5,stock1:0,stock2:0},
+  {name:"Nutella Brownie",cat:"brownie",price:120,minStock:5,stock1:0,stock2:0},
+  {name:"Oreo Brownie",cat:"brownie",price:120,minStock:5,stock1:0,stock2:0},
+  {name:"Brownie with Ice Cream",cat:"brownie",price:110,minStock:5,stock1:0,stock2:0},
+  {name:"Brownie with Hot Chocolate",cat:"brownie",price:120,minStock:5,stock1:0,stock2:0},
+  {name:"Japanese Cheese Cake",cat:"cake",price:90,minStock:3,stock1:0,stock2:0},
+  {name:"Matilda (Moist Chocolate Cake)",cat:"cake",price:120,minStock:3,stock1:0,stock2:0},
+  {name:"Matilda with Ice Cream",cat:"cake",price:150,minStock:3,stock1:0,stock2:0},
+  {name:"Rosemilk Tres Leches",cat:"tresleche",price:120,minStock:5,stock1:0,stock2:0},
+  {name:"Rasamalai Tres Leches",cat:"tresleche",price:130,minStock:5,stock1:0,stock2:0},
+  {name:"Korean Cream Cheese Bun",cat:"bun",price:120,minStock:5,stock1:0,stock2:0},
+  {name:"Blueberry Cheese Cake",cat:"cheesecake",price:130,minStock:3,stock1:0,stock2:0},
+  {name:"Kinder Bueno Cheese Cake",cat:"cheesecake",price:150,minStock:3,stock1:0,stock2:0},
+  {name:"Dark Berliner",cat:"berliner",price:100,minStock:5,stock1:0,stock2:0},
+  {name:"Nutella Berliner",cat:"berliner",price:130,minStock:5,stock1:0,stock2:0},
+  {name:"Hot Chocolate",cat:"drinks",price:70,minStock:10,stock1:0,stock2:0},
+  {name:"Melon Milk",cat:"drinks",price:50,minStock:10,stock1:0,stock2:0},
+  {name:"London Strawberry Chocolate",cat:"special",price:120,minStock:5,stock1:0,stock2:0}
+];
+
+// ═══════════════ STATE ═══════════════
+let currentRole = null;
+let products = [], sales = [], stockLogs = [], transfers = [];
+let config = {pins:{admin:'1234',b1:'1111',b2:'2222'}, billCounter:0, gstRate:5, b1name:'Branch 1', b2name:'Branch 2'};
+let cart = [];
+let activeTab = 'dashboard';
+let activeCat = 'all';
+let pinInput = '';
+let pinRole = '';
+let editProductId = null;
+let unsubs = [];
+
+// ═══════════════ CLOCK ═══════════════
+setInterval(()=>{
+  const n=new Date();
+  const t=n.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true});
+  const el=document.getElementById('hdClock');
+  if(el) el.textContent=t;
+},1000);
+
+// ═══════════════ UTILS ═══════════════
+function fmtMoney(n){return '₹'+Number(n||0).toFixed(2);}
+function fmtDate(ts){if(!ts)return'—';const d=ts.toDate?ts.toDate():new Date(ts);return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});}
+function fmtDateTime(ts){if(!ts)return'—';const d=ts.toDate?ts.toDate():new Date(ts);return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})+' '+d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});}
+function todayStr(){return new Date().toISOString().slice(0,10);}
+function padBill(n){return '#'+String(n).padStart(6,'0');}
+function getBranchName(b){return b==='b1'?config.b1name||'Branch 1':config.b2name||'Branch 2';}
+
+function catBadge(cat){
+  const map={brownie:'badge-brownie',cake:'badge-cake',tresleche:'badge-tresleche',bun:'badge-bun',cheesecake:'badge-cheesecake',berliner:'badge-berliner',drinks:'badge-drinks',special:'badge-special'};
+  const names={brownie:"Brownie's",cake:"Cakes",tresleche:"Tres Leches",bun:"Bun",cheesecake:"Cheese Cake",berliner:"Berliners",drinks:"Dink's",special:"Special"};
+  return `<span class="badge ${map[cat]||''}">${names[cat]||cat}</span>`;
+}
+
+function toast(msg,type='ok'){
+  const z=document.getElementById('toastZone');
+  const t=document.createElement('div');
+  t.className=`toast ${type}`;
+  t.textContent=msg;
+  z.appendChild(t);
+  setTimeout(()=>t.remove(),3200);
+}
+
+function closeModal(id){document.getElementById(id).classList.remove('show');}
+function closeModalOut(e,id){if(e.target.id===id)closeModal(id);}
+function openModal(id){document.getElementById(id).classList.add('show');}
+
+// ═══════════════ LOGIN ═══════════════
+function selectRole(role){
+  pinRole=role;
+  pinInput='';
+  updateDots();
+  document.getElementById('loginStep1').style.display='none';
+  document.getElementById('loginStep2').style.display='block';
+  const names={admin:'Administrator',b1:config.b1name||'Branch 1',b2:config.b2name||'Branch 2'};
+  document.getElementById('pinPrompt').textContent=`Enter PIN — ${names[role]}`;
+}
+function backToRoles(){
+  pinInput='';
+  document.getElementById('loginStep1').style.display='block';
+  document.getElementById('loginStep2').style.display='none';
+}
+function pinPress(d){
+  if(pinInput.length>=4)return;
+  pinInput+=d;
+  updateDots();
+  if(pinInput.length===4)checkPin();
+}
+function pinBack(){pinInput=pinInput.slice(0,-1);updateDots();}
+function pinClear(){pinInput='';updateDots();}
+function updateDots(){
+  for(let i=0;i<4;i++){
+    const el=document.getElementById('d'+i);
+    if(el) el.classList.toggle('filled',i<pinInput.length);
+  }
+}
+function checkPin(){
+  const correct=config.pins[pinRole];
+  if(pinInput===correct){loginAs(pinRole);}
+  else{
+    const pad=document.getElementById('pinPad');
+    pad.classList.add('shake');
+    setTimeout(()=>pad.classList.remove('shake'),400);
+    pinInput='';updateDots();
+    toast('Wrong PIN — try again','err');
+  }
+}
+
+function loginAs(role){
+  currentRole=role;
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('appScreen').classList.add('show');
+  const roleNames={admin:'Admin',b1:getBranchName('b1'),b2:getBranchName('b2')};
+  document.getElementById('hdrRole').textContent=roleNames[role]||role.toUpperCase();
+  document.getElementById('hdrBranch').textContent=role==='admin'?'All Branches':getBranchName(role);
+
+  // Show/hide admin tabs
+  document.querySelectorAll('.adm-only').forEach(el=>{
+    el.style.display=role==='admin'?'flex':'none';
+  });
+  updateBranchNameLabels();
+  startListeners();
+  switchTab('dashboard');
+}
+
+function logout(){
+  currentRole=null;
+  unsubs.forEach(u=>u());unsubs=[];
+  cart=[];
+  document.getElementById('appScreen').classList.remove('show');
+  document.getElementById('loginScreen').style.display='flex';
+  backToRoles();
+}
+
+// ═══════════════ TABS ═══════════════
+function switchTab(tab){
+  activeTab=tab;
+  document.querySelectorAll('.tab-content').forEach(el=>el.style.display='none');
+  document.querySelectorAll('.nav-tab').forEach(el=>el.classList.remove('active'));
+  const el=document.getElementById('tab-'+tab);
+  if(el)el.style.display='block';
+  const nav=document.querySelector(`.nav-tab[data-tab="${tab}"]`);
+  if(nav)nav.classList.add('active');
+  // Refresh tab
+  if(tab==='dashboard')renderDashboard();
+  if(tab==='billing')renderBillingTab();
+  if(tab==='stock')renderStockEntry();
+  if(tab==='transfer')renderTransferTab();
+  if(tab==='inventory')renderInventory();
+  if(tab==='history')renderHistory();
+  if(tab==='admin')renderAdminPanel();
+}
+
+// ═══════════════ FIRESTORE SEED & LISTENERS ═══════════════
+async function startListeners(){
+  // Config
+  const configRef=db.collection('nb_config').doc('settings');
+  const snap=await configRef.get();
+  if(!snap.exists){
+    await configRef.set({pins:{admin:'1234',b1:'1111',b2:'2222'},billCounter:0,gstRate:5,b1name:'Branch 1',b2name:'Branch 2'});
+    // Seed products
+    const batch=db.batch();
+    DEF_PRODUCTS.forEach(p=>{
+      const ref=db.collection('nb_products').doc();
+      batch.set(ref,{...p,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+    });
+    await batch.commit();
+    toast('First-run setup complete!','ok');
+  }
+
+  const u1=configRef.onSnapshot(d=>{
+    if(d.exists){
+      const data=d.data();
+      config={...config,...data};
+      updateBranchNameLabels();
+      const gEl=document.getElementById('gstDisplay');
+      if(gEl)gEl.textContent=config.gstRate+'%';
+      const gLbl=document.getElementById('gstLbl');
+      if(gLbl)gLbl.textContent=`GST (${config.gstRate}%)`;
+      updateCartTotals();
+    }
+  });
+
+  const u2=db.collection('nb_products').orderBy('name').onSnapshot(snap=>{
+    products=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(activeTab==='billing')renderMenuGrid();
+    if(activeTab==='inventory')renderInventory();
+    if(activeTab==='stock')renderStockEntry();
+    if(activeTab==='transfer')renderTransferTab();
+    if(activeTab==='dashboard')renderDashboard();
+    const qs=document.getElementById('qs-prods');
+    if(qs)qs.textContent=products.length;
+  });
+
+  const u3=db.collection('nb_sales').orderBy('ts','desc').limit(500).onSnapshot(snap=>{
+    sales=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(activeTab==='dashboard')renderDashboard();
+    if(activeTab==='history')renderHistory();
+    if(activeTab==='admin')renderAdminPanel();
+    const qs=document.getElementById('qs-sales');
+    if(qs)qs.textContent=sales.length;
+    const qr=document.getElementById('qs-rev');
+    if(qr)qr.textContent=fmtMoney(sales.reduce((a,s)=>a+(s.total||0),0));
+    const qb=document.getElementById('qs-bill');
+    if(qb)qb.textContent=padBill(config.billCounter||0);
+  });
+
+  const u4=db.collection('nb_stock_log').orderBy('ts','desc').limit(300).onSnapshot(snap=>{
+    stockLogs=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(activeTab==='stock')renderStockLog();
+    updateStockLogFilter();
+  });
+
+  const u5=db.collection('nb_transfers').orderBy('ts','desc').limit(200).onSnapshot(snap=>{
+    transfers=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(activeTab==='transfer')renderTransferLog();
+  });
+
+  unsubs=[u1,u2,u3,u4,u5];
+  document.getElementById('syncBadge').className='hdr-sync live';
+  document.getElementById('syncBadge').textContent='● LIVE';
+}
+
+// ═══════════════ BRANCH NAMES ═══════════════
+function updateBranchNameLabels(){
+  const b1=config.b1name||'Branch 1';
+  const b2=config.b2name||'Branch 2';
+  // Nav/header
+  document.getElementById('hdrBranch').textContent=currentRole==='admin'?'All Branches':getBranchName(currentRole);
+  // Role buttons on login
+  const rb1=document.getElementById('roleB1Name');if(rb1)rb1.textContent=b1;
+  const rb2=document.getElementById('roleB2Name');if(rb2)rb2.textContent=b2;
+  // Inventory headers
+  ['inv-b1h','inv-b2h','se-b1h','se-b2h','rep-b1h','rep-b2h','rep-b1ih','rep-b2ih','rep-b1sh','rep-b2sh'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    if(id.includes('b1'))el.textContent=el.textContent.replace(/Branch \S+/,b1);
+    else el.textContent=el.textContent.replace(/Branch \S+/,b2);
+  });
+  document.querySelectorAll('[id^="inv-b1h"],[id^="inv-b2h"],[id^="se-b1h"],[id^="se-b2h"]').forEach(el=>{
+    if(el.id.includes('b1'))el.textContent=`Stock ${b1}`;
+    else el.textContent=`Stock ${b2}`;
+  });
+  const seh1=document.getElementById('se-b1h');if(seh1)seh1.textContent=`${b1} — Set To`;
+  const seh2=document.getElementById('se-b2h');if(seh2)seh2.textContent=`${b2} — Set To`;
+  const inv1=document.getElementById('inv-b1h');if(inv1)inv1.textContent=`Stock ${b1}`;
+  const inv2=document.getElementById('inv-b2h');if(inv2)inv2.textContent=`Stock ${b2}`;
+  // Transfer options
+  const tf1=document.getElementById('tfDir1to2Opt');if(tf1)tf1.textContent=`${b1} → ${b2}`;
+  const tf2=document.getElementById('tfDir2to1Opt');if(tf2)tf2.textContent=`${b2} → ${b1}`;
+  const tfb1c=document.getElementById('tfB1CurrLbl');if(tfb1c)tfb1c.textContent=b1+' Current';
+  const tfb2c=document.getElementById('tfB2CurrLbl');if(tfb2c)tfb2c.textContent=b2+' Current';
+  const tfb1a=document.getElementById('tfB1AfterLbl');if(tfb1a)tfb1a.textContent=b1+' After';
+  const tfb2a=document.getElementById('tfB2AfterLbl');if(tfb2a)tfb2a.textContent=b2+' After';
+  // Billing title
+  const brt=document.getElementById('billBranchTitle');
+  if(brt&&currentRole){brt.innerHTML=`🧾 Billing <small>${currentRole==='admin'?'All Branches':getBranchName(currentRole)}</small>`;}
+  // History filter
+  const hbf=document.getElementById('histBranchFilter');
+  if(hbf){
+    hbf.options[1].text=b1;hbf.options[1].value='b1';
+    hbf.options[2].text=b2;hbf.options[2].value='b2';
+  }
+  // Admin inputs
+  const ab1=document.getElementById('adm-b1name');if(ab1)ab1.value=b1;
+  const ab2=document.getElementById('adm-b2name');if(ab2)ab2.value=b2;
+  // Product modal labels
+  const pm1=document.getElementById('pm-s1lbl');if(pm1)pm1.textContent=`Opening Stock ${b1}`;
+  const pm2=document.getElementById('pm-s2lbl');if(pm2)pm2.textContent=`Opening Stock ${b2}`;
+  // Dashboard label
+  const dl=document.getElementById('dashBranchLabel');
+  if(dl&&currentRole)dl.textContent=currentRole==='admin'?'All Branches':getBranchName(currentRole);
+}
+
+// ═══════════════ DASHBOARD ═══════════════
+function renderDashboard(){
+  const today=todayStr();
+  let filtered=sales.filter(s=>{
+    const sd=s.ts?.toDate?s.ts.toDate():new Date(s.ts||0);
+    return sd.toISOString().slice(0,10)===today;
+  });
+  if(currentRole==='b1')filtered=filtered.filter(s=>s.branch==='b1');
+  if(currentRole==='b2')filtered=filtered.filter(s=>s.branch==='b2');
+
+  const totalRev=filtered.reduce((a,s)=>a+(s.total||0),0);
+  const orders=filtered.length;
+  const avg=orders?totalRev/orders:0;
+
+  // Top seller
+  const itemCounts={};
+  filtered.forEach(s=>{(s.items||[]).forEach(i=>{itemCounts[i.name]=(itemCounts[i.name]||0)+i.qty;});});
+  let topItem='—',topQty=0;
+  Object.entries(itemCounts).forEach(([n,q])=>{if(q>topQty){topItem=n;topQty=q;}});
+
+  document.getElementById('ds-rev').textContent=fmtMoney(totalRev);
+  document.getElementById('ds-orders').textContent=orders;
+  document.getElementById('ds-avg').textContent=fmtMoney(avg);
+  document.getElementById('ds-top').textContent=topItem==='—'?'—':topItem;
+  document.getElementById('ds-topSub').textContent=topQty?`${topQty} sold today`:'';
+
+  // Category table
+  const catRev={},catQty={};
+  filtered.forEach(s=>{(s.items||[]).forEach(i=>{catRev[i.cat]=(catRev[i.cat]||0)+i.qty*i.price;catQty[i.cat]=(catQty[i.cat]||0)+i.qty;});});
+  const sorted=Object.entries(catRev).sort((a,b)=>b[1]-a[1]);
+  const catBody=document.getElementById('dashCatTbl');
+  if(sorted.length===0){catBody.innerHTML='<tr class="no-data-row"><td colspan="3">No sales today</td></tr>';}
+  else{catBody.innerHTML=sorted.map(([c,r])=>`<tr><td>${catBadge(c)}</td><td>${catQty[c]}</td><td class="font-mono text-gold">${fmtMoney(r)}</td></tr>`).join('');}
+
+  // Low stock
+  const lowItems=[];
+  products.forEach(p=>{
+    if((p.stock1||0)<=(p.minStock||0))lowItems.push({...p,branch:'b1',stock:p.stock1||0});
+    if((p.stock2||0)<=(p.minStock||0))lowItems.push({...p,branch:'b2',stock:p.stock2||0});
+  });
+  const lowFilter=currentRole==='admin'?lowItems:lowItems.filter(l=>l.branch===currentRole);
+  const lowBody=document.getElementById('dashLowTbl');
+  if(lowFilter.length===0){lowBody.innerHTML='<tr class="no-data-row"><td colspan="4">All stock OK ✓</td></tr>';}
+  else{lowBody.innerHTML=lowFilter.map(l=>`<tr><td>${l.name}</td><td><span class="badge badge-${l.branch}">${getBranchName(l.branch)}</span></td><td class="font-mono">${l.stock}</td><td><span class="badge badge-low">LOW</span></td></tr>`).join('');}
+}
+
+// ═══════════════ BILLING ═══════════════
+function renderBillingTab(){
+  buildCatFilters();
+  renderMenuGrid();
+  renderCartItems();
+  updateBranchNameLabels();
+}
+
+function buildCatFilters(){
+  const cats=[{id:'all',label:'All'},...[...new Set(products.map(p=>p.cat))].map(c=>({id:c,label:catLabel(c)}))];
+  const cf=document.getElementById('catFilters');
+  cf.innerHTML=cats.map(c=>`<button class="cat-btn${activeCat===c.id?' active':''}" onclick="setCat('${c.id}')">${c.label}</button>`).join('');
+}
+
+function catLabel(c){const names={brownie:"Brownie's",cake:"Cakes",tresleche:"Tres Leches",bun:"Bun",cheesecake:"Cheese Cake",berliner:"Berliners",drinks:"Dink's",special:"Special"};return names[c]||c;}
+
+function setCat(c){activeCat=c;buildCatFilters();renderMenuGrid();}
+
+function renderMenuGrid(){
+  const q=document.getElementById('menuSearch')?.value?.toLowerCase()||'';
+  const branch=currentRole==='b2'?'b2':'b1';
+  let list=products.filter(p=>{
+    if(activeCat!=='all'&&p.cat!==activeCat)return false;
+    if(q&&!p.name.toLowerCase().includes(q))return false;
+    return true;
+  });
+  const grid=document.getElementById('menuGrid');
+  if(!grid)return;
+  if(list.length===0){grid.innerHTML='<div style="color:var(--muted);font-size:.87rem;padding:20px">No items found</div>';return;}
+  const stock_key=branch==='b1'?'stock1':'stock2';
+  grid.innerHTML=list.map(p=>{
+    const stk=p[stock_key]||0;
+    const oos=stk<=0;
+    const low=stk>0&&stk<=(p.minStock||0);
+    return `<div class="menu-card${oos?' oos':''}${low?' low-stock':''}" onclick="addToCart('${p.id}')">
+      <div class="mc-cat">${catBadge(p.cat)}</div>
+      <div class="mc-name">${p.name}</div>
+      <div class="mc-price">₹${p.price}</div>
+      <div class="mc-stock">${oos?'Out of stock':`Stock: ${stk}`}</div>
+    </div>`;
+  }).join('');
+}
+
+function addToCart(id){
+  const p=products.find(x=>x.id===id);if(!p)return;
+  const existing=cart.find(c=>c.id===id);
+  if(existing)existing.qty++;
+  else cart.push({id,name:p.name,cat:p.cat,price:p.price,qty:1});
+  renderCartItems();
+}
+
+function renderCartItems(){
+  const el=document.getElementById('cartItems');
+  if(!el)return;
+  if(cart.length===0){el.innerHTML='<div class="cart-empty"><span>🍰</span>Add items to cart</div>';updateCartTotals();return;}
+  el.innerHTML=cart.map((c,i)=>`
+    <div class="cart-item">
+      <div style="flex:1">
+        <div class="ci-name">${c.name}</div>
+        <div class="ci-price">₹${c.price} each</div>
+      </div>
+      <div class="qty-ctrl">
+        <button class="qty-btn" onclick="changeQty(${i},-1)">−</button>
+        <div class="qty-val">${c.qty}</div>
+        <button class="qty-btn" onclick="changeQty(${i},1)">+</button>
+      </div>
+      <div class="ci-total">${fmtMoney(c.price*c.qty)}</div>
+    </div>`).join('');
+  updateCartTotals();
+}
+
+function changeQty(i,d){
+  cart[i].qty+=d;
+  if(cart[i].qty<=0)cart.splice(i,1);
+  renderCartItems();
+}
+
+function clearCart(){cart=[];renderCartItems();}
+
+function updateCartTotals(){
+  const sub=cart.reduce((a,c)=>a+c.price*c.qty,0);
+  const gstRate=config.gstRate||5;
+  const gst=sub*(gstRate/100);
+  const total=sub+gst;
+  const s=document.getElementById('cartSub');if(s)s.textContent=fmtMoney(sub);
+  const g=document.getElementById('cartGst');if(g)g.textContent=fmtMoney(gst);
+  const t=document.getElementById('cartTotal');if(t)t.textContent=fmtMoney(total);
+  const gl=document.getElementById('gstLbl');if(gl)gl.textContent=`GST (${gstRate}%)`;
+}
+
+async function generateInvoice(){
+  if(cart.length===0){toast('Cart is empty','warn');return;}
+  const branch=currentRole==='admin'?'b1':currentRole;
+  const sub=cart.reduce((a,c)=>a+c.price*c.qty,0);
+  const gstRate=config.gstRate||5;
+  const gst=sub*(gstRate/100);
+  const total=sub+gst;
+  const billNo=(config.billCounter||0)+1;
+  const custName=document.getElementById('custName')?.value||'';
+  const custPhone=document.getElementById('custPhone')?.value||'';
+
+  try{
+    const batch=db.batch();
+    // Deduct stock
+    const stockKey=branch==='b1'?'stock1':'stock2';
+    cart.forEach(c=>{
+      const pRef=db.collection('nb_products').doc(c.id);
+      const prod=products.find(p=>p.id===c.id);
+      const cur=(prod?prod[stockKey]:0)||0;
+      batch.update(pRef,{[stockKey]:Math.max(0,cur-c.qty)});
+    });
+    // Save sale
+    const saleRef=db.collection('nb_sales').doc();
+    batch.set(saleRef,{
+      billNo,ts:firebase.firestore.FieldValue.serverTimestamp(),
+      branch,customer:custName,phone:custPhone,
+      items:cart.map(c=>({id:c.id,name:c.name,cat:c.cat,price:c.price,qty:c.qty})),
+      sub,gst,gstRate,total,status:'PAID'
+    });
+    // Increment counter
+    batch.update(db.collection('nb_config').doc('settings'),{billCounter:billNo});
+    await batch.commit();
+    toast('Invoice saved!','ok');
+    showInvoiceModal({billNo,branch,customer:custName,phone:custPhone,items:cart,sub,gst,gstRate,total,status:'PAID',ts:{toDate:()=>new Date()}});
+    clearCart();
+    document.getElementById('custName').value='';
+    document.getElementById('custPhone').value='';
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+// ═══════════════ INVOICE MODAL ═══════════════
+function showInvoiceModal(sale){
+  const isAdmin=currentRole==='admin';
+  const body=document.getElementById('invoiceModalBody');
+  const foot=document.getElementById('invoiceModalFoot');
+  const branchName=getBranchName(sale.branch||'b1');
+  const dateStr=fmtDateTime(sale.ts);
+
+  body.innerHTML=`
+    <div class="inv-print" id="invContent">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:16px;padding-bottom:14px;border-bottom:2px solid #e8e0d0">
+        <div>
+          <div class="inv-logo-txt">NB <span>Cakes & Desserts</span></div>
+          <div class="inv-meta">${branchName} · NB Cakes & Desserts</div>
+          <div class="inv-meta">cakes &amp; desserts since forever 🍰</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-family:'Space Mono',monospace;font-size:1.1rem;font-weight:700;color:#3d1f0a">${padBill(sale.billNo)}</div>
+          <div class="inv-meta">${dateStr}</div>
+          <span class="paid-stamp">PAID ✓</span>
+        </div>
+      </div>
+      ${sale.customer?`<div style="margin-bottom:12px;font-size:.85rem;color:#444"><strong>Customer:</strong> ${sale.customer}${sale.phone?' · '+sale.phone:''}</div>`:''}
+      <table class="inv-table">
+        <thead><tr><th>#</th><th>Item</th><th>Qty</th><th>Rate</th><th>Amount</th></tr></thead>
+        <tbody>
+          ${sale.items.map((it,i)=>`<tr><td>${i+1}</td><td>${it.name}</td><td>${it.qty}</td><td>₹${it.price}</td><td style="font-family:'Space Mono',monospace">₹${(it.price*it.qty).toFixed(2)}</td></tr>`).join('')}
+        </tbody>
+      </table>
+      <div style="display:flex;justify-content:flex-end">
+        <div style="width:220px">
+          <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:.85rem;color:#555;border-bottom:1px solid #e8e0d0"><span>Subtotal</span><span>₹${(sale.sub).toFixed(2)}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:.85rem;color:#555;border-bottom:1px solid #e8e0d0"><span>GST (${sale.gstRate}%)</span><span>₹${(sale.gst).toFixed(2)}</span></div>
+          <div class="inv-total-bar"><span class="lbl">TOTAL</span><span class="val">₹${(sale.total).toFixed(2)}</span></div>
+        </div>
+      </div>
+      <div style="margin-top:16px;text-align:center;font-size:.75rem;color:#888;border-top:1px solid #e8e0d0;padding-top:10px">
+        Thank you for visiting NB Cakes &amp; Desserts! 🍰 · Computer-generated invoice
+      </div>
+    </div>`;
+
+  foot.innerHTML='';
+  const closeBtn=document.createElement('button');
+  closeBtn.className='btn btn-outline';closeBtn.textContent='Close';
+  closeBtn.onclick=()=>closeModal('invoiceModal');
+  foot.appendChild(closeBtn);
+
+  if(isAdmin){
+    const printBtn=document.createElement('button');
+    printBtn.className='btn btn-choc';printBtn.textContent='🖨 Print';
+    printBtn.onclick=()=>printInvoice(sale);
+    foot.appendChild(printBtn);
+    const dlBtn=document.createElement('button');
+    dlBtn.className='btn btn-gold';dlBtn.textContent='⬇ Download PDF';
+    dlBtn.onclick=()=>printInvoice(sale);
+    foot.appendChild(dlBtn);
+  }else{
+    const note=document.createElement('span');
+    note.style.cssText='font-size:.78rem;color:var(--muted);align-self:center';
+    note.textContent='View only — contact admin to download';
+    foot.insertBefore(note,foot.firstChild);
+  }
+  openModal('invoiceModal');
+}
+
+function printInvoice(sale){
+  const branchName=getBranchName(sale.branch||'b1');
+  const dateStr=fmtDateTime(sale.ts);
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>Invoice ${padBill(sale.billNo)}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@400;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+  <style>
+  *{box-sizing:border-box;margin:0;padding:0}body{font-family:'DM Sans',sans-serif;background:#fff;padding:24px;color:#111;font-size:14px}
+  .logo{font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:900;color:#3d1f0a}.logo span{color:#c8860a}
+  table{width:100%;border-collapse:collapse;margin:14px 0}th{background:#f5e6c8;padding:7px 10px;text-align:left;font-size:12px;color:#3d1f0a;text-transform:uppercase;letter-spacing:.05em}
+  td{padding:7px 10px;border-bottom:1px solid #e8e0d0;font-size:13px}.total-bar{background:#3d1f0a;color:#fff;padding:10px 14px;display:flex;justify-content:space-between;border-radius:4px;margin-top:8px}
+  .total-val{font-family:'Playfair Display',serif;font-size:1.25rem;font-weight:700;color:#f5c518}.paid{display:inline-block;border:3px solid #1e7e50;color:#1e7e50;padding:4px 14px;border-radius:4px;font-weight:900;font-size:13px;letter-spacing:.1em;transform:rotate(-5deg)}
+  .mono{font-family:'Space Mono',monospace}
+  @media print{@page{size:A5;margin:8mm}body{padding:0}}
+  </style></head><body>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:16px;padding-bottom:14px;border-bottom:2px solid #e8e0d0">
+    <div><div class="logo">NB <span>Cakes &amp; Desserts</span></div><div style="font-size:12px;color:#666;margin-top:4px">${branchName}</div></div>
+    <div style="text-align:right"><div class="mono" style="font-size:1rem;font-weight:700;color:#3d1f0a">${padBill(sale.billNo)}</div><div style="font-size:12px;color:#666">${dateStr}</div><span class="paid">PAID ✓</span></div>
+  </div>
+  ${sale.customer?`<div style="margin-bottom:12px;font-size:13px;color:#444"><strong>Customer:</strong> ${sale.customer}${sale.phone?' · '+sale.phone:''}</div>`:''}
+  <table><thead><tr><th>#</th><th>Item</th><th>Qty</th><th>Rate</th><th>Amount</th></tr></thead><tbody>
+  ${sale.items.map((it,i)=>`<tr><td>${i+1}</td><td>${it.name}</td><td>${it.qty}</td><td>₹${it.price}</td><td class="mono">₹${(it.price*it.qty).toFixed(2)}</td></tr>`).join('')}
+  </tbody></table>
+  <div style="display:flex;justify-content:flex-end"><div style="width:220px">
+  <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13px;color:#555;border-bottom:1px solid #e8e0d0"><span>Subtotal</span><span>₹${sale.sub.toFixed(2)}</span></div>
+  <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13px;color:#555;border-bottom:1px solid #e8e0d0"><span>GST (${sale.gstRate}%)</span><span>₹${sale.gst.toFixed(2)}</span></div>
+  <div class="total-bar"><span style="font-size:13px;opacity:.8">TOTAL</span><span class="total-val">₹${sale.total.toFixed(2)}</span></div>
+  </div></div>
+  <div style="margin-top:16px;text-align:center;font-size:11px;color:#999;border-top:1px solid #e8e0d0;padding-top:10px">Thank you for visiting NB Cakes &amp; Desserts! 🍰 · Computer-generated invoice</div>
+  <script>window.onload=function(){window.print();}<\/script></body></html>`);
+  w.document.close();
+}
+
+// ═══════════════ STOCK ENTRY ═══════════════
+function renderStockEntry(){
+  const tbody=document.getElementById('stockEntryBody');
+  if(!tbody)return;
+  const d=document.getElementById('stockDate');
+  if(d&&!d.value)d.value=todayStr();
+  tbody.innerHTML=products.map(p=>`
+    <tr>
+      <td style="font-weight:600">${p.name}</td>
+      <td>${catBadge(p.cat)}</td>
+      <td class="font-mono">₹${p.price}</td>
+      <td><input type="number" min="0" placeholder="—" data-id="${p.id}" data-branch="1" style="width:80px;padding:6px 8px"/></td>
+      <td><input type="number" min="0" placeholder="—" data-id="${p.id}" data-branch="2" style="width:80px;padding:6px 8px"/></td>
+      <td class="font-mono ${(p.stock1||0)<=(p.minStock||0)?'text-red':''}">${p.stock1||0}</td>
+      <td class="font-mono ${(p.stock2||0)<=(p.minStock||0)?'text-red':''}">${p.stock2||0}</td>
+    </tr>`).join('');
+  renderStockLog();
+  updateStockLogFilter();
+}
+
+async function saveStockEntry(){
+  const date=document.getElementById('stockDate')?.value||todayStr();
+  const inputs=document.querySelectorAll('#stockEntryBody input[type=number]');
+  const batch=db.batch();
+  const logs=[];
+  const updates={};
+  inputs.forEach(inp=>{
+    const v=inp.value;
+    if(v==='')return;
+    const id=inp.dataset.id;
+    const br=inp.dataset.branch;
+    const field=br==='1'?'stock1':'stock2';
+    if(!updates[id])updates[id]={};
+    updates[id][field]=parseInt(v)||0;
+  });
+  if(Object.keys(updates).length===0){toast('No values entered','warn');return;}
+  for(const [id,upd] of Object.entries(updates)){
+    batch.update(db.collection('nb_products').doc(id),upd);
+    const p=products.find(x=>x.id===id);
+    logs.push({date,ts:firebase.firestore.FieldValue.serverTimestamp(),productId:id,productName:p?.name||'',cat:p?.cat||'',stock1Set:upd.stock1??null,stock2Set:upd.stock2??null,enteredBy:currentRole});
+  }
+  logs.forEach(l=>{const r=db.collection('nb_stock_log').doc();batch.set(r,l);});
+  try{await batch.commit();toast('Stock saved!','ok');}
+  catch(e){toast('Error: '+e.message,'err');}
+}
+
+function renderStockLog(){
+  const body=document.getElementById('stockLogBody');if(!body)return;
+  const filter=document.getElementById('stockLogFilter')?.value||'';
+  const list=filter?stockLogs.filter(l=>l.date===filter):stockLogs;
+  if(list.length===0){body.innerHTML='<tr class="no-data-row"><td colspan="7">No log entries</td></tr>';return;}
+  body.innerHTML=list.map(l=>`<tr>
+    <td>${l.date||'—'}</td><td style="font-weight:600">${l.productName}</td><td>${catBadge(l.cat)}</td>
+    <td class="font-mono">${l.stock1Set??'—'}</td><td class="font-mono">${l.stock2Set??'—'}</td>
+    <td class="font-mono">${fmtDateTime(l.ts)}</td>
+    <td><span class="badge badge-${l.enteredBy==='admin'?'admin':l.enteredBy}">${l.enteredBy}</span></td>
+  </tr>`).join('');
+}
+
+function updateStockLogFilter(){
+  const sel=document.getElementById('stockLogFilter');if(!sel)return;
+  const cur=sel.value;
+  const dates=[...new Set(stockLogs.map(l=>l.date).filter(Boolean))].sort().reverse();
+  sel.innerHTML='<option value="">All Dates</option>'+dates.map(d=>`<option value="${d}"${d===cur?' selected':''}>${d}</option>`).join('');
+}
+
+// ═══════════════ STOCK TRANSFER ═══════════════
+function renderTransferTab(){
+  const sel=document.getElementById('tfItem');if(!sel)return;
+  const cur=sel.value;
+  sel.innerHTML='<option value="">Select item...</option>'+products.map(p=>`<option value="${p.id}">${p.name} (B1:${p.stock1||0} / B2:${p.stock2||0})</option>`).join('');
+  if(cur)sel.value=cur;
+  renderTransferLog();
+  updateTransferPreview();
+}
+
+function updateTransferPreview(){
+  const id=document.getElementById('tfItem')?.value;
+  const p=products.find(x=>x.id===id);
+  const prev=document.getElementById('tfPreview');
+  const afterWrap=document.getElementById('tfAfterWrap');
+  if(!p){if(prev)prev.style.display='none';if(afterWrap)afterWrap.style.display='none';return;}
+  if(prev)prev.style.display='grid';
+  document.getElementById('tfB1Curr').textContent=p.stock1||0;
+  document.getElementById('tfB2Curr').textContent=p.stock2||0;
+  document.getElementById('tfB1CurrLbl').textContent=(config.b1name||'Branch 1')+' Current';
+  document.getElementById('tfB2CurrLbl').textContent=(config.b2name||'Branch 2')+' Current';
+
+  const dir=document.getElementById('tfDir')?.value;
+  const qty=parseInt(document.getElementById('tfQty')?.value)||0;
+  if(!qty||!afterWrap){return;}
+  afterWrap.style.display='block';
+  let a1=p.stock1||0, a2=p.stock2||0;
+  if(dir==='1to2'){a1-=qty;a2+=qty;}else{a2-=qty;a1+=qty;}
+  const n1=document.getElementById('tfB1After');const n2=document.getElementById('tfB2After');
+  if(n1){n1.textContent=a1;n1.className='tprev-num'+(a1<0?' danger':'');}
+  if(n2){n2.textContent=a2;n2.className='tprev-num'+(a2<0?' danger':'');}
+}
+
+async function confirmTransfer(){
+  const id=document.getElementById('tfItem')?.value;
+  const dir=document.getElementById('tfDir')?.value;
+  const qty=parseInt(document.getElementById('tfQty')?.value)||0;
+  const note=document.getElementById('tfNote')?.value||'';
+  const p=products.find(x=>x.id===id);
+  if(!p){toast('Select an item','warn');return;}
+  if(!qty||qty<=0){toast('Enter valid quantity','warn');return;}
+  const src=dir==='1to2'?p.stock1||0:p.stock2||0;
+  if(qty>src){toast('Not enough stock in source branch','err');return;}
+  const batch=db.batch();
+  const pRef=db.collection('nb_products').doc(id);
+  if(dir==='1to2'){
+    batch.update(pRef,{stock1:(p.stock1||0)-qty,stock2:(p.stock2||0)+qty});
+  }else{
+    batch.update(pRef,{stock1:(p.stock1||0)+qty,stock2:(p.stock2||0)-qty});
+  }
+  const tRef=db.collection('nb_transfers').doc();
+  batch.set(tRef,{ts:firebase.firestore.FieldValue.serverTimestamp(),productId:id,productName:p.name,qty,from:dir==='1to2'?'b1':'b2',to:dir==='1to2'?'b2':'b1',prevS1:p.stock1||0,prevS2:p.stock2||0,newS1:dir==='1to2'?(p.stock1||0)-qty:(p.stock1||0)+qty,newS2:dir==='1to2'?(p.stock2||0)+qty:(p.stock2||0)-qty,note});
+  try{
+    await batch.commit();
+    toast('Transfer complete!','ok');
+    document.getElementById('tfItem').value='';
+    document.getElementById('tfQty').value='';
+    document.getElementById('tfNote').value='';
+    document.getElementById('tfPreview').style.display='none';
+    document.getElementById('tfAfterWrap').style.display='none';
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+function renderTransferLog(){
+  const body=document.getElementById('transferLogBody');if(!body)return;
+  if(transfers.length===0){body.innerHTML='<tr class="no-data-row"><td colspan="6">No transfers yet</td></tr>';return;}
+  body.innerHTML=transfers.map(t=>`<tr>
+    <td class="font-mono" style="font-size:.78rem">${fmtDateTime(t.ts)}</td>
+    <td style="font-weight:600">${t.productName}</td>
+    <td class="font-mono">${t.qty}</td>
+    <td><span class="badge badge-${t.from}">${getBranchName(t.from)}</span></td>
+    <td><span class="badge badge-${t.to}">${getBranchName(t.to)}</span></td>
+    <td style="font-size:.8rem;color:var(--muted)">${t.note||'—'}</td>
+  </tr>`).join('');
+}
+
+// ═══════════════ INVENTORY ═══════════════
+function renderInventory(){
+  const body=document.getElementById('inventoryBody');if(!body)return;
+  const q=document.getElementById('invSearch')?.value?.toLowerCase()||'';
+  const cat=document.getElementById('invCatFilter')?.value||'';
+
+  // Build cat filter options
+  const cf=document.getElementById('invCatFilter');
+  if(cf&&cf.options.length<=1){
+    const cats=[...new Set(products.map(p=>p.cat))];
+    cats.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=catLabel(c);cf.appendChild(o);});
+  }
+
+  let list=products.filter(p=>{
+    if(q&&!p.name.toLowerCase().includes(q))return false;
+    if(cat&&p.cat!==cat)return false;
+    return true;
+  });
+  if(list.length===0){body.innerHTML='<tr class="no-data-row"><td colspan="8">No products found</td></tr>';return;}
+  body.innerHTML=list.map(p=>{
+    const s1ok=(p.stock1||0)>(p.minStock||0);
+    const s2ok=(p.stock2||0)>(p.minStock||0);
+    const overallOk=s1ok&&s2ok;
+    return `<tr>
+      <td style="font-weight:600">${p.name}</td>
+      <td>${catBadge(p.cat)}</td>
+      <td class="font-mono text-gold">₹${p.price}</td>
+      <td class="font-mono ${s1ok?'text-green':'text-red'}" style="${s1ok?'':'font-weight:700'}">${p.stock1||0}</td>
+      <td class="font-mono ${s2ok?'text-green':'text-red'}" style="${s2ok?'':'font-weight:700'}">${p.stock2||0}</td>
+      <td class="font-mono">${p.minStock||0}</td>
+      <td><span class="badge badge-${overallOk?'ok':'low'}">${overallOk?'OK':'LOW'}</span></td>
+      <td>
+        <button class="btn btn-sm btn-outline" onclick="openProductModal('${p.id}')">✏ Edit</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteProduct('${p.id}','${p.name.replace(/'/g,"\\'")}')">🗑</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function openProductModal(id){
+  editProductId=id||null;
+  document.getElementById('productModalTitle').textContent=id?'Edit Product':'Add Product';
+  if(id){
+    const p=products.find(x=>x.id===id);if(!p)return;
+    document.getElementById('pm-name').value=p.name;
+    document.getElementById('pm-cat').value=p.cat;
+    document.getElementById('pm-price').value=p.price;
+    document.getElementById('pm-min').value=p.minStock||0;
+    document.getElementById('pm-s1').value=p.stock1||0;
+    document.getElementById('pm-s2').value=p.stock2||0;
+  }else{
+    ['pm-name','pm-cat'].forEach(id2=>{const el=document.getElementById(id2);if(el&&id2==='pm-name')el.value='';});
+    document.getElementById('pm-price').value='';
+    document.getElementById('pm-min').value='5';
+    document.getElementById('pm-s1').value='0';
+    document.getElementById('pm-s2').value='0';
+  }
+  openModal('productModal');
+}
+
+async function saveProduct(){
+  const name=document.getElementById('pm-name')?.value?.trim();
+  const cat=document.getElementById('pm-cat')?.value;
+  const price=parseFloat(document.getElementById('pm-price')?.value)||0;
+  const minStock=parseInt(document.getElementById('pm-min')?.value)||0;
+  const stock1=parseInt(document.getElementById('pm-s1')?.value)||0;
+  const stock2=parseInt(document.getElementById('pm-s2')?.value)||0;
+  if(!name||!price){toast('Name and price required','warn');return;}
+  const data={name,cat,price,minStock,stock1,stock2};
+  try{
+    if(editProductId){
+      await db.collection('nb_products').doc(editProductId).update(data);
+      toast('Product updated!','ok');
+    }else{
+      await db.collection('nb_products').add({...data,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+      toast('Product added!','ok');
+    }
+    closeModal('productModal');
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+async function deleteProduct(id,name){
+  if(!confirm(`Delete "${name}"? This cannot be undone.`))return;
+  try{await db.collection('nb_products').doc(id).delete();toast('Product deleted','ok');}
+  catch(e){toast('Error: '+e.message,'err');}
+}
+
+// ═══════════════ SALES HISTORY ═══════════════
+function renderHistory(){
+  const body=document.getElementById('historyBody');if(!body)return;
+  const branch=document.getElementById('histBranchFilter')?.value||'';
+  const date=document.getElementById('histDateFilter')?.value||'';
+  let list=sales;
+  if(branch)list=list.filter(s=>s.branch===branch);
+  if(date)list=list.filter(s=>{const d=s.ts?.toDate?s.ts.toDate():new Date(s.ts||0);return d.toISOString().slice(0,10)===date;});
+  if(list.length===0){body.innerHTML='<tr class="no-data-row"><td colspan="9">No sales found</td></tr>';return;}
+  body.innerHTML=list.map(s=>`<tr>
+    <td class="font-mono">${padBill(s.billNo)}</td>
+    <td style="font-size:.8rem">${fmtDateTime(s.ts)}</td>
+    <td><span class="badge badge-${s.branch}">${getBranchName(s.branch)}</span></td>
+    <td>${s.customer||'—'}${s.phone?'<br><span style="font-size:.75rem;color:var(--muted)">'+s.phone+'</span>':''}</td>
+    <td style="font-size:.8rem">${(s.items||[]).map(i=>`${i.name} ×${i.qty}`).join(', ')}</td>
+    <td class="font-mono">${s.gstRate}%</td>
+    <td class="font-mono text-gold">₹${(s.total||0).toFixed(2)}</td>
+    <td><span class="badge badge-paid">${s.status}</span></td>
+    <td>
+      <button class="btn btn-sm btn-outline" onclick="viewSaleInvoice('${s.id}')">👁 View</button>
+      ${currentRole==='admin'?`<button class="btn btn-sm btn-choc" onclick="viewSaleInvoice('${s.id}',true)">⬇ PDF</button>`:''}
+    </td>
+  </tr>`).join('');
+}
+
+function viewSaleInvoice(id,print=false){
+  const s=sales.find(x=>x.id===id);if(!s)return;
+  showInvoiceModal(s);
+  if(print)setTimeout(()=>printInvoice(s),300);
+}
+
+function exportCSV(){
+  const branch=document.getElementById('histBranchFilter')?.value||'';
+  const date=document.getElementById('histDateFilter')?.value||'';
+  let list=sales;
+  if(branch)list=list.filter(s=>s.branch===branch);
+  if(date)list=list.filter(s=>{const d=s.ts?.toDate?s.ts.toDate():new Date(s.ts||0);return d.toISOString().slice(0,10)===date;});
+  const rows=[['Invoice#','DateTime','Branch','Customer','Phone','Items','Subtotal','GST%','GST','Total','Status']];
+  list.forEach(s=>{
+    rows.push([padBill(s.billNo),fmtDateTime(s.ts),getBranchName(s.branch),s.customer||'',s.phone||'',(s.items||[]).map(i=>`${i.name}x${i.qty}`).join(';'),s.sub?.toFixed(2),s.gstRate,s.gst?.toFixed(2),s.total?.toFixed(2),s.status]);
+  });
+  const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download=`NB_Sales_${date||'all'}.csv`;
+  a.click();
+}
+
+// ═══════════════ REPORTS ═══════════════
+function generateReport(){
+  const date=document.getElementById('repDate')?.value||todayStr();
+  const branch=document.getElementById('repBranch')?.value||'';
+  let list=sales.filter(s=>{const d=s.ts?.toDate?s.ts.toDate():new Date(s.ts||0);return d.toISOString().slice(0,10)===date;});
+  if(branch)list=list.filter(s=>s.branch===branch);
+  document.getElementById('reportSections').style.display='flex';
+
+  // Summary
+  const b1s=list.filter(s=>s.branch==='b1');
+  const b2s=list.filter(s=>s.branch==='b2');
+  const metrics=[
+    ['Orders',b1s.length,b2s.length,list.length],
+    ['Subtotal',fmtMoney(b1s.reduce((a,s)=>a+(s.sub||0),0)),fmtMoney(b2s.reduce((a,s)=>a+(s.sub||0),0)),fmtMoney(list.reduce((a,s)=>a+(s.sub||0),0))],
+    ['GST',fmtMoney(b1s.reduce((a,s)=>a+(s.gst||0),0)),fmtMoney(b2s.reduce((a,s)=>a+(s.gst||0),0)),fmtMoney(list.reduce((a,s)=>a+(s.gst||0),0))],
+    ['Revenue',fmtMoney(b1s.reduce((a,s)=>a+(s.total||0),0)),fmtMoney(b2s.reduce((a,s)=>a+(s.total||0),0)),fmtMoney(list.reduce((a,s)=>a+(s.total||0),0))],
+    ['Avg Bill',fmtMoney(b1s.length?b1s.reduce((a,s)=>a+(s.total||0),0)/b1s.length:0),fmtMoney(b2s.length?b2s.reduce((a,s)=>a+(s.total||0),0)/b2s.length:0),fmtMoney(list.length?list.reduce((a,s)=>a+(s.total||0),0)/list.length:0)]
+  ];
+  document.getElementById('repSummaryBody').innerHTML=metrics.map(r=>`<tr><td style="font-weight:600">${r[0]}</td><td class="font-mono">${r[1]}</td><td class="font-mono">${r[2]}</td><td class="font-mono text-gold">${r[3]}</td></tr>`).join('');
+
+  // Category
+  const catR={},catQ={};
+  list.forEach(s=>{(s.items||[]).forEach(i=>{catR[i.cat]=(catR[i.cat]||0)+i.price*i.qty;catQ[i.cat]=(catQ[i.cat]||0)+i.qty;});});
+  document.getElementById('repCatBody').innerHTML=Object.entries(catR).sort((a,b)=>b[1]-a[1]).map(([c,r])=>`<tr><td>${catBadge(c)}</td><td class="font-mono">${catQ[c]}</td><td class="font-mono text-gold">${fmtMoney(r)}</td></tr>`).join('')||'<tr class="no-data-row"><td colspan="3">No sales</td></tr>';
+
+  // Item wise
+  const iR={},iQ1={},iQ2={},iCat={};
+  list.forEach(s=>{(s.items||[]).forEach(i=>{iR[i.name]=(iR[i.name]||0)+i.price*i.qty;iCat[i.name]=i.cat;if(s.branch==='b1')iQ1[i.name]=(iQ1[i.name]||0)+i.qty;else iQ2[i.name]=(iQ2[i.name]||0)+i.qty;});});
+  document.getElementById('repItemBody').innerHTML=Object.entries(iR).sort((a,b)=>b[1]-a[1]).map(([n,r])=>`<tr><td style="font-weight:600">${n}</td><td>${catBadge(iCat[n])}</td><td class="font-mono">${iQ1[n]||0}</td><td class="font-mono">${iQ2[n]||0}</td><td class="font-mono">${(iQ1[n]||0)+(iQ2[n]||0)}</td><td class="font-mono text-gold">${fmtMoney(r)}</td></tr>`).join('')||'<tr class="no-data-row"><td colspan="6">No sales</td></tr>';
+
+  // Stock snapshot
+  document.getElementById('repStockBody').innerHTML=products.map(p=>{
+    const ok=(p.stock1||0)>(p.minStock||0)&&(p.stock2||0)>(p.minStock||0);
+    return `<tr><td style="font-weight:600">${p.name}</td><td>${catBadge(p.cat)}</td><td class="font-mono ${(p.stock1||0)<=(p.minStock||0)?'text-red':''}">${p.stock1||0}</td><td class="font-mono ${(p.stock2||0)<=(p.minStock||0)?'text-red':''}">${p.stock2||0}</td><td class="font-mono">${p.minStock||0}</td><td><span class="badge badge-${ok?'ok':'low'}">${ok?'OK':'LOW'}</span></td></tr>`;
+  }).join('');
+  
+  // Update headers
+  const b1n=config.b1name||'Branch 1';const b2n=config.b2name||'Branch 2';
+  ['rep-b1h','rep-b2h','rep-b1ih','rep-b2ih','rep-b1sh','rep-b2sh'].forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    if(id.includes('b1'))el.textContent=b1n;else el.textContent=b2n;
+  });
+}
+
+function exportExcel(){
+  if(!window.XLSX){toast('SheetJS not loaded','err');return;}
+  const date=document.getElementById('repDate')?.value||todayStr();
+  const branch=document.getElementById('repBranch')?.value||'';
+  let list=sales.filter(s=>{const d=s.ts?.toDate?s.ts.toDate():new Date(s.ts||0);return d.toISOString().slice(0,10)===date;});
+  if(branch)list=list.filter(s=>s.branch===branch);
+
+  const wb=XLSX.utils.book_new();
+  const b1n=config.b1name||'Branch 1';const b2n=config.b2name||'Branch 2';
+  const b1s=list.filter(s=>s.branch==='b1');const b2s=list.filter(s=>s.branch==='b2');
+
+  const summaryData=[['Metric',b1n,b2n,'Total'],
+    ['Orders',b1s.length,b2s.length,list.length],
+    ['Subtotal',b1s.reduce((a,s)=>a+(s.sub||0),0),b2s.reduce((a,s)=>a+(s.sub||0),0),list.reduce((a,s)=>a+(s.sub||0),0)],
+    ['GST',b1s.reduce((a,s)=>a+(s.gst||0),0),b2s.reduce((a,s)=>a+(s.gst||0),0),list.reduce((a,s)=>a+(s.gst||0),0)],
+    ['Revenue',b1s.reduce((a,s)=>a+(s.total||0),0),b2s.reduce((a,s)=>a+(s.total||0),0),list.reduce((a,s)=>a+(s.total||0),0)]];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(summaryData),'Sales Summary');
+
+  const iR={},iQ1={},iQ2={},iCat={},iPrice={};
+  list.forEach(s=>{(s.items||[]).forEach(i=>{iR[i.name]=(iR[i.name]||0)+i.price*i.qty;iCat[i.name]=catLabel(i.cat);iPrice[i.name]=i.price;if(s.branch==='b1')iQ1[i.name]=(iQ1[i.name]||0)+i.qty;else iQ2[i.name]=(iQ2[i.name]||0)+i.qty;});});
+  const itemData=[['Item','Category',`Qty ${b1n}`,`Qty ${b2n}`,'Total Qty','Revenue'],...Object.entries(iR).map(([n,r])=>[n,iCat[n],iQ1[n]||0,iQ2[n]||0,(iQ1[n]||0)+(iQ2[n]||0),r])];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(itemData),'Item Sales');
+
+  const stockData=[['Item','Category',`Stock ${b1n}`,`Stock ${b2n}`,'Alert At','Status'],...products.map(p=>[p.name,catLabel(p.cat),p.stock1||0,p.stock2||0,p.minStock||0,((p.stock1||0)>(p.minStock||0)&&(p.stock2||0)>(p.minStock||0))?'OK':'LOW'])];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(stockData),'Stock Snapshot');
+
+  const billData=[['Invoice#','DateTime','Branch','Customer','Phone','Items','Subtotal','GST%','Total'],...sales.map(s=>[padBill(s.billNo),fmtDateTime(s.ts),getBranchName(s.branch),s.customer||'',s.phone||'',(s.items||[]).map(i=>`${i.name}x${i.qty}`).join('; '),s.sub?.toFixed(2),s.gstRate,s.total?.toFixed(2)])];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(billData),'All Bills');
+
+  const tfData=[['DateTime','Item','Qty','From','To','Note'],...transfers.map(t=>[fmtDateTime(t.ts),t.productName,t.qty,getBranchName(t.from),getBranchName(t.to),t.note||''])];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(tfData),'Transfer Log');
+
+  XLSX.writeFile(wb,`NB_Report_${date}.xlsx`);
+  toast('Excel exported!','ok');
+}
+
+function printReport(){
+  const rs=document.getElementById('reportSections');
+  if(!rs||rs.style.display==='none'){toast('Generate report first','warn');return;}
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>NB Report</title>
+  <style>body{font-family:Arial,sans-serif;padding:20px;font-size:12px}h2{color:#3d1f0a;margin-bottom:10px}table{width:100%;border-collapse:collapse;margin-bottom:20px}th{background:#f5e6c8;padding:6px 8px;text-align:left;font-size:11px}td{padding:6px 8px;border-bottom:1px solid #e8e0d0}@media print{@page{margin:10mm}}</style></head><body>
+  <h2>NB Cakes & Desserts — Report</h2>${rs.innerHTML}
+  <script>window.onload=function(){window.print();}<\/script></body></html>`);
+  w.document.close();
+}
+
+// ═══════════════ ADMIN PANEL ═══════════════
+function renderAdminPanel(){
+  // Branch revenue today
+  const today=todayStr();
+  const todaySales=sales.filter(s=>{const d=s.ts?.toDate?s.ts.toDate():new Date(s.ts||0);return d.toISOString().slice(0,10)===today;});
+  const b1s=todaySales.filter(s=>s.branch==='b1');
+  const b2s=todaySales.filter(s=>s.branch==='b2');
+  document.getElementById('adminRevBody').innerHTML=[
+    [config.b1name||'Branch 1','b1',b1s],
+    [config.b2name||'Branch 2','b2',b2s]
+  ].map(([n,b,ss])=>`<tr><td><span class="badge badge-${b}">${n}</span></td><td class="font-mono">${ss.length}</td><td class="font-mono text-gold">${fmtMoney(ss.reduce((a,s)=>a+(s.total||0),0))}</td><td class="font-mono">${fmtMoney(ss.length?ss.reduce((a,s)=>a+(s.total||0),0)/ss.length:0)}</td></tr>`).join('');
+
+  // Top 10 all time
+  const iR={},iQ={};
+  sales.forEach(s=>{(s.items||[]).forEach(i=>{iR[i.name]=(iR[i.name]||0)+i.price*i.qty;iQ[i.name]=(iQ[i.name]||0)+i.qty;});});
+  const top=Object.entries(iQ).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const medals=['🥇','🥈','🥉'];
+  document.getElementById('adminTopBody').innerHTML=top.map(([n,q],i)=>`<tr><td>${medals[i]||i+1}</td><td style="font-weight:600">${n}</td><td class="font-mono">${q}</td><td class="font-mono text-gold">${fmtMoney(iR[n]||0)}</td></tr>`).join('')||'<tr class="no-data-row"><td colspan="4">No sales data yet</td></tr>';
+
+  // GST display
+  const gEl=document.getElementById('gstDisplay');if(gEl)gEl.textContent=(config.gstRate||5)+'%';
+
+  // Branch name inputs
+  const ab1=document.getElementById('adm-b1name');if(ab1)ab1.value=config.b1name||'Branch 1';
+  const ab2=document.getElementById('adm-b2name');if(ab2)ab2.value=config.b2name||'Branch 2';
+
+  // Quick stats
+  const qp=document.getElementById('qs-prods');if(qp)qp.textContent=products.length;
+  const qs=document.getElementById('qs-sales');if(qs)qs.textContent=sales.length;
+  const qr=document.getElementById('qs-rev');if(qr)qr.textContent=fmtMoney(sales.reduce((a,s)=>a+(s.total||0),0));
+  const qb=document.getElementById('qs-bill');if(qb)qb.textContent=padBill(config.billCounter||0);
+}
+
+async function saveBranchNames(){
+  const b1=document.getElementById('adm-b1name')?.value?.trim()||'Branch 1';
+  const b2=document.getElementById('adm-b2name')?.value?.trim()||'Branch 2';
+  try{
+    await db.collection('nb_config').doc('settings').update({b1name:b1,b2name:b2});
+    toast('Branch names updated!','ok');
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+async function updateGST(){
+  const v=parseFloat(document.getElementById('gstInput')?.value);
+  if(isNaN(v)||v<0||v>100){toast('Enter valid GST %','warn');return;}
+  try{
+    await db.collection('nb_config').doc('settings').update({gstRate:v});
+    toast(`GST updated to ${v}%`,'ok');
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+async function updatePIN(role){
+  const val=document.getElementById(`pin-${role}`)?.value;
+  if(!val||val.length!==4||!/^\d{4}$/.test(val)){toast('PIN must be 4 digits','warn');return;}
+  const update={};update[`pins.${role}`]=val;
+  try{
+    await db.collection('nb_config').doc('settings').update(update);
+    toast(`${role.toUpperCase()} PIN updated`,'ok');
+    document.getElementById(`pin-${role}`).value='';
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+// ─── init date fields ───
+window.addEventListener('DOMContentLoaded',()=>{
+  const today=todayStr();
+  ['stockDate','repDate','histDateFilter'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=today;});
+});
+</script>
+</body>
+</html>
