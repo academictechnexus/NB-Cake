@@ -1223,7 +1223,7 @@ function clearCart(){cart=[];renderCartItems();}
 
 function updateCartTotals(){
   const sub=cart.reduce((a,c)=>a+c.price*c.qty,0);
-  const gstRate=config.gstRate||5;
+  const gstRate=config.gstRate??0;
   const gst=sub*(gstRate/100);
   const total=sub+gst;
   // Desktop cart
@@ -1242,7 +1242,7 @@ async function generateInvoice(){
   if(cart.length===0){toast('Cart is empty','warn');return;}
   const branch=currentRole==='admin'?'b1':currentRole;
   const sub=cart.reduce((a,c)=>a+c.price*c.qty,0);
-  const gstRate=config.gstRate||5;
+  const gstRate=config.gstRate??0;
   const gst=sub*(gstRate/100);
   const total=sub+gst;
   const billNo=(config.billCounter||0)+1;
@@ -1830,7 +1830,7 @@ function renderAdminPanel(){
   document.getElementById('adminTopBody').innerHTML=top.map(([n,q],i)=>`<tr><td>${medals[i]||i+1}</td><td style="font-weight:600">${n}</td><td class="font-mono">${q}</td><td class="font-mono text-gold">${fmtMoney(iR[n]||0)}</td></tr>`).join('')||'<tr class="no-data-row"><td colspan="4">No sales data yet</td></tr>';
 
   // GST display
-  const gEl=document.getElementById('gstDisplay');if(gEl)gEl.textContent=(config.gstRate||5)+'%';
+  const gEl=document.getElementById('gstDisplay');if(gEl)gEl.textContent=(config.gstRate??0)+'%';
 
   // Branch name inputs
   const ab1=document.getElementById('adm-b1name');if(ab1)ab1.value=config.b1name||'Branch 1';
@@ -1853,12 +1853,20 @@ async function saveBranchNames(){
 }
 
 async function updateGST(){
-  const v=parseFloat(document.getElementById('gstInput')?.value);
+  const inp=document.getElementById('gstInput');
+  const raw=inp?.value?.trim();
+  if(raw===''||raw===null||raw===undefined){toast('Enter a GST value (use 0 for no GST)','warn');return;}
+  const v=parseFloat(raw);
   if(isNaN(v)||v<0||v>100){toast('Enter valid GST % (0–100)','warn');return;}
   try{
-    await db.collection('nb_config').doc('settings').update({gstRate:v});
+    // Use set with merge to ensure 0 is saved correctly
+    await db.collection('nb_config').doc('settings').set({gstRate:v},{merge:true});
+    config.gstRate=v;
+    updateCartTotals();
+    renderCartItems();
+    const gEl=document.getElementById('gstDisplay');if(gEl)gEl.textContent=v+'%';
     toast(`GST updated to ${v}%`,'ok');
-    document.getElementById('gstInput').value='';
+    inp.value='';
   }catch(e){toast('Error: '+e.message,'err');}
 }
 
