@@ -542,7 +542,8 @@ hr.divider{border:none;border-top:1.5px solid var(--border);margin:16px 0}
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
         <div style="display:flex;align-items:center;gap:8px"><label style="font-size:.85rem;font-weight:600;color:var(--text2)">Date:</label><input type="date" id="stockDate" style="width:160px"/></div>
         <button class="btn btn-gold" onclick="saveStockEntry()">💾 Save Entry</button>
-        <button class="btn btn-green" onclick="downloadStockReport()">⬇ Stock Report</button>
+        <button class="btn btn-green" onclick="downloadStockCSV()">⬇ CSV</button>
+        <button class="btn btn-blue" onclick="downloadStockPDF()">🖨 PDF</button>
         <button class="btn btn-danger" onclick="resetAllStock()">🔄 Reset All Stock</button>
       </div>
       <div class="tbl-wrap">
@@ -969,10 +970,13 @@ async function startListeners(){
       config={...config,...data};
       updateBranchNameLabels();
       const gEl=document.getElementById('gstDisplay');
-      if(gEl)gEl.textContent=config.gstRate+'%';
+      if(gEl)gEl.textContent=(config.gstRate??0)+'%';
       const gLbl=document.getElementById('gstLbl');
-      if(gLbl)gLbl.textContent=`GST (${config.gstRate}%)`;
+      if(gLbl)gLbl.textContent=`GST (${config.gstRate??0}%)`;
+      const mGLbl=document.getElementById('mGstLbl');
+      if(mGLbl)mGLbl.textContent=`GST (${config.gstRate??0}%)`;
       updateCartTotals();
+      renderCartItems();
     }
   });
 
@@ -1850,10 +1854,11 @@ async function saveBranchNames(){
 
 async function updateGST(){
   const v=parseFloat(document.getElementById('gstInput')?.value);
-  if(isNaN(v)||v<0||v>100){toast('Enter valid GST %','warn');return;}
+  if(isNaN(v)||v<0||v>100){toast('Enter valid GST % (0–100)','warn');return;}
   try{
     await db.collection('nb_config').doc('settings').update({gstRate:v});
     toast(`GST updated to ${v}%`,'ok');
+    document.getElementById('gstInput').value='';
   }catch(e){toast('Error: '+e.message,'err');}
 }
 
@@ -1869,10 +1874,17 @@ async function updatePIN(role){
 }
 
 // ═══════════════ STOCK REPORT DOWNLOAD ═══════════════
-function downloadStockReport(){
+function getStockReportData(){
   const date=document.getElementById('stockDate')?.value||todayStr();
   const b1n=config.b1name||'Branch 1';
   const b2n=config.b2name||'Branch 2';
+  const t1=products.reduce((a,p)=>a+(p.stock1||0),0);
+  const t2=products.reduce((a,p)=>a+(p.stock2||0),0);
+  return {date,b1n,b2n,t1,t2};
+}
+
+function downloadStockCSV(){
+  const {date,b1n,b2n,t1,t2}=getStockReportData();
   const rows=[
     [`NB Cakes & Desserts — Stock Balance Report`],
     [`Date: ${date}`],
@@ -1881,22 +1893,21 @@ function downloadStockReport(){
     ['Item','Category',`Stock ${b1n}`,`Stock ${b2n}`,'Total Stock','Alert At','Status']
   ];
   products.forEach(p=>{
-    const total=(p.stock1||0)+(p.stock2||0);
     const ok=(p.stock1||0)>(p.minStock||0)&&(p.stock2||0)>(p.minStock||0);
-    rows.push([p.name,catLabel(p.cat),p.stock1||0,p.stock2||0,total,p.minStock||0,ok?'OK':'LOW']);
+    rows.push([p.name,catLabel(p.cat),p.stock1||0,p.stock2||0,(p.stock1||0)+(p.stock2||0),p.minStock||0,ok?'OK':'LOW']);
   });
-  const t1=products.reduce((a,p)=>a+(p.stock1||0),0);
-  const t2=products.reduce((a,p)=>a+(p.stock2||0),0);
   rows.push([]);
   rows.push(['TOTAL','',t1,t2,t1+t2,'','']);
-  // CSV
   const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
   a.download=`NB_Stock_Report_${date}.csv`;
   a.click();
-  // PDF
-  const b1n2=b1n,b2n2=b2n;
+  toast('CSV downloaded!','ok');
+}
+
+function downloadStockPDF(){
+  const {date,b1n,b2n,t1,t2}=getStockReportData();
   const w=window.open('','_blank');
   w.document.write(`<!DOCTYPE html><html><head><title>Stock Report ${date}</title>
   <style>body{font-family:Arial,sans-serif;padding:20px;font-size:12px;color:#111}
@@ -1904,19 +1915,19 @@ function downloadStockReport(){
   table{width:100%;border-collapse:collapse}
   th{background:#f5e6c8;padding:7px 10px;text-align:left;font-size:11px;color:#3d1f0a;text-transform:uppercase;letter-spacing:.05em}
   td{padding:7px 10px;border-bottom:1px solid #e8e0d0;font-size:12px}
-  tr:last-child td{font-weight:700;background:#f9f5ee}
+  .total-row td{font-weight:700;background:#f9f5ee}
   .ok{color:#1e7e50;font-weight:700}.low{color:#c0392b;font-weight:700}
   @media print{@page{margin:10mm}}</style></head><body>
-  <h2>NB Cakes & Desserts — Stock Balance Report</h2>
+  <h2>NB Cakes &amp; Desserts — Stock Balance Report</h2>
   <p>Date: ${date} &nbsp;·&nbsp; Generated: ${new Date().toLocaleString('en-IN')}</p>
-  <table><thead><tr><th>Item</th><th>Category</th><th>${b1n2}</th><th>${b2n2}</th><th>Total</th><th>Alert</th><th>Status</th></tr></thead>
+  <table><thead><tr><th>Item</th><th>Category</th><th>${b1n}</th><th>${b2n}</th><th>Total</th><th>Alert</th><th>Status</th></tr></thead>
   <tbody>
   ${products.map(p=>{const ok=(p.stock1||0)>(p.minStock||0)&&(p.stock2||0)>(p.minStock||0);return`<tr><td>${p.name}</td><td>${catLabel(p.cat)}</td><td>${p.stock1||0}</td><td>${p.stock2||0}</td><td>${(p.stock1||0)+(p.stock2||0)}</td><td>${p.minStock||0}</td><td class="${ok?'ok':'low'}">${ok?'OK':'LOW'}</td></tr>`;}).join('')}
-  <tr><td><strong>TOTAL</strong></td><td></td><td><strong>${t1}</strong></td><td><strong>${t2}</strong></td><td><strong>${t1+t2}</strong></td><td></td><td></td></tr>
+  <tr class="total-row"><td>TOTAL</td><td></td><td>${t1}</td><td>${t2}</td><td>${t1+t2}</td><td></td><td></td></tr>
   </tbody></table>
   <script>window.onload=function(){window.print();}<\/script></body></html>`);
   w.document.close();
-  toast('Stock report ready!','ok');
+  toast('PDF ready — save from print dialog','ok');
 }
 
 // ═══════════════ RESET ALL STOCK ═══════════════
