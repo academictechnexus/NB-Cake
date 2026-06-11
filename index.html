@@ -525,6 +525,15 @@ hr.divider{border:none;border-top:1.5px solid var(--border);margin:16px 0}
           <div class="cart-footer">
             <div class="cart-row"><span>Subtotal</span><span id="cartSub">₹0.00</span></div>
             <div class="cart-row"><span id="gstLbl">GST (5%)</span><span id="cartGst">₹0.00</span></div>
+            <div class="cart-row" style="align-items:flex-start">
+              <span style="padding-top:6px">Parcel</span>
+              <div style="display:flex;gap:6px">
+                <button id="parcelNone" class="btn btn-sm btn-outline" style="font-size:.75rem" onclick="setParcel(0)">None</button>
+                <button id="parcelSmall" class="btn btn-sm btn-outline" style="font-size:.75rem" onclick="setParcel(5)">Small ₹5</button>
+                <button id="parcelBig" class="btn btn-sm btn-outline" style="font-size:.75rem" onclick="setParcel(10)">Big ₹10</button>
+              </div>
+            </div>
+            <div class="cart-row" id="parcelRow" style="display:none"><span>Parcel Charge</span><span id="cartParcel">₹0.00</span></div>
             <div class="cart-row total-row"><span>TOTAL</span><span id="cartTotal">₹0.00</span></div>
             <button class="btn btn-gold" style="width:100%;justify-content:center;margin-top:8px;padding:12px" onclick="generateInvoice()">🧾 Generate Invoice</button>
           </div>
@@ -743,6 +752,15 @@ hr.divider{border:none;border-top:1.5px solid var(--border);margin:16px 0}
     <div style="border-top:1.5px solid var(--border);padding:12px 14px;background:var(--panel2)">
       <div class="cart-row"><span>Subtotal</span><span id="mCartSub">₹0.00</span></div>
       <div class="cart-row"><span id="mGstLbl">GST (5%)</span><span id="mCartGst">₹0.00</span></div>
+      <div class="cart-row" style="align-items:flex-start">
+        <span style="padding-top:6px">Parcel</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+          <button id="mParcelNone" class="btn btn-sm btn-outline" style="font-size:.75rem" onclick="setParcel(0)">None</button>
+          <button id="mParcelSmall" class="btn btn-sm btn-outline" style="font-size:.75rem" onclick="setParcel(5)">Small ₹5</button>
+          <button id="mParcelBig" class="btn btn-sm btn-outline" style="font-size:.75rem" onclick="setParcel(10)">Big ₹10</button>
+        </div>
+      </div>
+      <div class="cart-row" id="mParcelRow" style="display:none"><span>Parcel Charge</span><span id="mCartParcel">₹0.00</span></div>
       <div class="cart-row total-row"><span>TOTAL</span><span id="mCartTotal">₹0.00</span></div>
       <button class="btn btn-gold" style="width:100%;justify-content:center;margin-top:8px;padding:12px" onclick="generateInvoice()">🧾 Generate Invoice</button>
     </div>
@@ -779,13 +797,13 @@ hr.divider{border:none;border-top:1.5px solid var(--border);margin:16px 0}
 <script>
 // ═══════════════ FIREBASE CONFIG ═══════════════
 const firebaseConfig = {
- apiKey: "AIzaSyD5D6FkhghmfUloFjCV8vsTmuZNk85aWpQ",
+  apiKey: "AIzaSyD5D6FkhghmfUloFjCV8vsTmuZNk85aWpQ",
   authDomain: "nb-database-9adcb.firebaseapp.com",
   projectId: "nb-database-9adcb",
   storageBucket: "nb-database-9adcb.firebasestorage.app",
   messagingSenderId: "134605520891",
   appId: "1:134605520891:web:89ea4ac881cb3d93a9d55e",
-  measurementId: "G-E7Y0CG818G"
+  measurementId: "G-E7Y0CG818G
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
@@ -819,6 +837,7 @@ let currentRole = null;
 let products = [], sales = [], stockLogs = [], transfers = [];
 let config = {pins:{admin:'1234',b1:'1111',b2:'2222'}, billCounter:0, gstRate:5, b1name:'Branch 1', b2name:'Branch 2'};
 let cart = [];
+let parcelCharge = 0;
 let activeTab = 'dashboard';
 let activeCat = 'all';
 let pinInput = '';
@@ -1168,7 +1187,26 @@ function addToCart(id){
   renderCartItems();
 }
 
-function cartItemsHTML(){
+function setParcel(val){
+  parcelCharge=val;
+  // Update button states — desktop
+  ['parcelNone','parcelSmall','parcelBig'].forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    el.className='btn btn-sm btn-outline';el.style.fontSize='.75rem';
+  });
+  ['mParcelNone','mParcelSmall','mParcelBig'].forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    el.className='btn btn-sm btn-outline';el.style.fontSize='.75rem';
+  });
+  const activeId=val===0?'parcelNone':val===5?'parcelSmall':'parcelBig';
+  const mActiveId=val===0?'mParcelNone':val===5?'mParcelSmall':'mParcelBig';
+  const ae=document.getElementById(activeId);if(ae){ae.className='btn btn-sm btn-gold';ae.style.fontSize='.75rem';}
+  const mae=document.getElementById(mActiveId);if(mae){mae.className='btn btn-sm btn-gold';mae.style.fontSize='.75rem';}
+  // Show/hide parcel row
+  const pr=document.getElementById('parcelRow');if(pr)pr.style.display=val>0?'flex':'none';
+  const mpr=document.getElementById('mParcelRow');if(mpr)mpr.style.display=val>0?'flex':'none';
+  updateCartTotals();
+}
   if(cart.length===0)return '<div class="cart-empty"><span>🍰</span>Add items to cart</div>';
   return cart.map((c,i)=>`
     <div class="cart-item">
@@ -1225,17 +1263,19 @@ function updateCartTotals(){
   const sub=cart.reduce((a,c)=>a+c.price*c.qty,0);
   const gstRate=config.gstRate??0;
   const gst=sub*(gstRate/100);
-  const total=sub+gst;
-  // Desktop cart
+  const total=sub+gst+parcelCharge;
+  // Desktop
   const s=document.getElementById('cartSub');if(s)s.textContent=fmtMoney(sub);
   const g=document.getElementById('cartGst');if(g)g.textContent=fmtMoney(gst);
   const t=document.getElementById('cartTotal');if(t)t.textContent=fmtMoney(total);
   const gl=document.getElementById('gstLbl');if(gl)gl.textContent=`GST (${gstRate}%)`;
-  // Mobile drawer
+  const cp=document.getElementById('cartParcel');if(cp)cp.textContent=fmtMoney(parcelCharge);
+  // Mobile
   const ms=document.getElementById('mCartSub');if(ms)ms.textContent=fmtMoney(sub);
   const mg=document.getElementById('mCartGst');if(mg)mg.textContent=fmtMoney(gst);
   const mt=document.getElementById('mCartTotal');if(mt)mt.textContent=fmtMoney(total);
   const mgl=document.getElementById('mGstLbl');if(mgl)mgl.textContent=`GST (${gstRate}%)`;
+  const mcp=document.getElementById('mCartParcel');if(mcp)mcp.textContent=fmtMoney(parcelCharge);
 }
 
 async function generateInvoice(){
@@ -1244,7 +1284,7 @@ async function generateInvoice(){
   const sub=cart.reduce((a,c)=>a+c.price*c.qty,0);
   const gstRate=config.gstRate??0;
   const gst=sub*(gstRate/100);
-  const total=sub+gst;
+  const total=sub+gst+parcelCharge;
   const billNo=(config.billCounter||0)+1;
   const custName=document.getElementById('custName')?.value||document.getElementById('custNameM')?.value||'';
   const custPhone=document.getElementById('custPhone')?.value||document.getElementById('custPhoneM')?.value||'';
@@ -1265,14 +1305,15 @@ async function generateInvoice(){
       billNo,ts:firebase.firestore.FieldValue.serverTimestamp(),
       branch,customer:custName,phone:custPhone,
       items:cart.map(c=>({id:c.id,name:c.name,cat:c.cat,price:c.price,qty:c.qty})),
-      sub,gst,gstRate,total,status:'PAID'
+      sub,gst,gstRate,parcel:parcelCharge,total,status:'PAID'
     });
     // Increment counter
     batch.update(db.collection('nb_config').doc('settings'),{billCounter:billNo});
     await batch.commit();
     toast('Invoice saved!','ok');
-    showInvoiceModal({billNo,branch,customer:custName,phone:custPhone,items:cart,sub,gst,gstRate,total,status:'PAID',ts:{toDate:()=>new Date()}});
+    showInvoiceModal({billNo,branch,customer:custName,phone:custPhone,items:cart,sub,gst,gstRate,parcel:parcelCharge,total,status:'PAID',ts:{toDate:()=>new Date()}});
     clearCart();
+    parcelCharge=0;setParcel(0);
     const cn=document.getElementById('custName');if(cn)cn.value='';
     const cp=document.getElementById('custPhone');if(cp)cp.value='';
     const cnm=document.getElementById('custNameM');if(cnm)cnm.value='';
@@ -1314,6 +1355,7 @@ function showInvoiceModal(sale){
         <div style="width:220px">
           <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:.85rem;color:#555;border-bottom:1px solid #e8e0d0"><span>Subtotal</span><span>₹${(sale.sub).toFixed(2)}</span></div>
           <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:.85rem;color:#555;border-bottom:1px solid #e8e0d0"><span>GST (${sale.gstRate}%)</span><span>₹${(sale.gst).toFixed(2)}</span></div>
+          ${(sale.parcel||0)>0?`<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:.85rem;color:#555;border-bottom:1px solid #e8e0d0"><span>Parcel Charge</span><span>₹${(sale.parcel).toFixed(2)}</span></div>`:''}
           <div class="inv-total-bar"><span class="lbl">TOTAL</span><span class="val">₹${(sale.total).toFixed(2)}</span></div>
         </div>
       </div>
@@ -1372,6 +1414,7 @@ function printInvoice(sale){
   <div style="display:flex;justify-content:flex-end"><div style="width:220px">
   <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13px;color:#555;border-bottom:1px solid #e8e0d0"><span>Subtotal</span><span>₹${sale.sub.toFixed(2)}</span></div>
   <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13px;color:#555;border-bottom:1px solid #e8e0d0"><span>GST (${sale.gstRate}%)</span><span>₹${sale.gst.toFixed(2)}</span></div>
+  ${(sale.parcel||0)>0?`<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13px;color:#555;border-bottom:1px solid #e8e0d0"><span>Parcel Charge</span><span>₹${sale.parcel.toFixed(2)}</span></div>`:''}
   <div class="total-bar"><span style="font-size:13px;opacity:.8">TOTAL</span><span class="total-val">₹${sale.total.toFixed(2)}</span></div>
   </div></div>
   <div style="margin-top:16px;text-align:center;font-size:11px;color:#999;border-top:1px solid #e8e0d0;padding-top:10px">Thank you for visiting NB Cakes &amp; Desserts! 🍰 · Computer-generated invoice</div>
@@ -1872,13 +1915,17 @@ async function updateGST(){
 
 async function updatePIN(role){
   const val=document.getElementById(`pin-${role}`)?.value;
-  if(!val||val.length!==4||!/^\d{4}$/.test(val)){toast('PIN must be 4 digits','warn');return;}
-  const update={};update[`pins.${role}`]=val;
+  if(!val||val.length!==4||!/^\d{4}$/.test(val)){toast('PIN must be exactly 4 digits','warn');return;}
   try{
-    await db.collection('nb_config').doc('settings').update(update);
-    toast(`${role.toUpperCase()} PIN updated`,'ok');
+    // Read current pins first, then merge
+    const snap=await db.collection('nb_config').doc('settings').get();
+    const currentPins=snap.exists?(snap.data().pins||{}):{};
+    const newPins={...currentPins,[role]:val};
+    await db.collection('nb_config').doc('settings').set({pins:newPins},{merge:true});
+    config.pins=newPins;
+    toast(`${role==='admin'?'Admin':role==='b1'?(config.b1name||'Branch 1'):(config.b2name||'Branch 2')} PIN updated ✓`,'ok');
     document.getElementById(`pin-${role}`).value='';
-  }catch(e){toast('Error: '+e.message,'err');}
+  }catch(e){toast('Error saving PIN: '+e.message,'err');}
 }
 
 // ═══════════════ STOCK REPORT DOWNLOAD ═══════════════
