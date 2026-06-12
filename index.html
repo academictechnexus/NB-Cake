@@ -1206,6 +1206,7 @@ function setParcel(val){
   const mpr=document.getElementById('mParcelRow');if(mpr)mpr.style.display=val>0?'flex':'none';
   updateCartTotals();
 }
+  function cartItemsHTML(){
   if(cart.length===0)return '<div class="cart-empty"><span>🍰</span>Add items to cart</div>';
   return cart.map((c,i)=>`
     <div class="cart-item">
