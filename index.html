@@ -1206,7 +1206,6 @@ function setParcel(val){
   const mpr=document.getElementById('mParcelRow');if(mpr)mpr.style.display=val>0?'flex':'none';
   updateCartTotals();
 }
-  function cartItemsHTML(){
   if(cart.length===0)return '<div class="cart-empty"><span>🍰</span>Add items to cart</div>';
   return cart.map((c,i)=>`
     <div class="cart-item">
@@ -1734,7 +1733,7 @@ function renderHistory(){
     <td><span class="badge badge-paid">${s.status}</span></td>
     <td>
       <button class="btn btn-sm btn-outline" onclick="viewSaleInvoice('${s.id}')">👁 View</button>
-      ${currentRole==='admin'?`<button class="btn btn-sm btn-choc" onclick="viewSaleInvoice('${s.id}',true)">⬇ PDF</button>`:''}
+      ${currentRole==='admin'?`<button class="btn btn-sm btn-choc" onclick="viewSaleInvoice('${s.id}',true)">⬇ PDF</button><button class="btn btn-sm btn-danger" onclick="deleteSale('${s.id}')">🗑</button>`:''}
     </td>
   </tr>`).join('');
 }
@@ -1743,6 +1742,35 @@ function viewSaleInvoice(id,print=false){
   const s=sales.find(x=>x.id===id);if(!s)return;
   showInvoiceModal(s);
   if(print)setTimeout(()=>printInvoice(s),300);
+}
+
+async function deleteSale(id){
+  const s=sales.find(x=>x.id===id);if(!s)return;
+  const itemList=(s.items||[]).map(i=>`${i.name} ×${i.qty}`).join(', ');
+  const confirmed=confirm(
+    `🗑 Delete Invoice ${padBill(s.billNo)}?\n\n`+
+    `Items: ${itemList}\n`+
+    `Total: ₹${(s.total||0).toFixed(2)}\n`+
+    `Branch: ${getBranchName(s.branch)}\n\n`+
+    `Stock will be restored to the branch.\n`+
+    `This cannot be undone. Press OK to confirm.`
+  );
+  if(!confirmed)return;
+  try{
+    const batch=db.batch();
+    // Restore stock back to branch
+    const stockKey=s.branch==='b1'?'stock1':'stock2';
+    (s.items||[]).forEach(item=>{
+      const prod=products.find(p=>p.id===item.id);
+      if(!prod)return;
+      const restored=(prod[stockKey]||0)+item.qty;
+      batch.update(db.collection('nb_products').doc(item.id),{[stockKey]:restored});
+    });
+    // Delete the sale
+    batch.delete(db.collection('nb_sales').doc(id));
+    await batch.commit();
+    toast(`Invoice ${padBill(s.billNo)} deleted — stock restored ✓`,'ok');
+  }catch(e){toast('Error: '+e.message,'err');}
 }
 
 function exportCSV(){
