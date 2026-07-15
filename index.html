@@ -129,6 +129,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .badge-paid{background:#e8f5e9;color:var(--green)}
 .badge-b1{background:#e3f2fd;color:var(--blue)}
 .badge-b2{background:#fff3e0;color:#b96a00}
+.badge-b3{background:#f3e5f5;color:var(--purple)}
 .badge-admin{background:var(--gold3);color:var(--gold)}
 
 /* ─── BUTTONS ─── */
@@ -426,6 +427,7 @@ hr.divider{border:none;border-top:1.5px solid var(--border);margin:16px 0}
         <button class="role-btn" onclick="selectRole('admin')"><span class="role-icon">👑</span><div><div style="font-weight:700">Administrator</div><div style="font-size:.78rem;color:var(--muted);font-weight:400">Full access to all features</div></div></button>
         <button class="role-btn" id="roleB1Btn" onclick="selectRole('b1')"><span class="role-icon">🏪</span><div><div id="roleB1Name" style="font-weight:700">Branch 1</div><div style="font-size:.78rem;color:var(--muted);font-weight:400">Billing &amp; dashboard</div></div></button>
         <button class="role-btn" id="roleB2Btn" onclick="selectRole('b2')"><span class="role-icon">🏪</span><div><div id="roleB2Name" style="font-weight:700">Branch 2</div><div style="font-size:.78rem;color:var(--muted);font-weight:400">Billing &amp; dashboard</div></div></button>
+        <button class="role-btn" id="roleB3Btn" onclick="selectRole('b3')"><span class="role-icon">🏪</span><div><div id="roleB3Name" style="font-weight:700">Branch 3</div><div style="font-size:.78rem;color:var(--muted);font-weight:400">Billing &amp; dashboard</div></div></button>
       </div>
     </div>
     <div id="loginStep2" style="display:none">
@@ -558,7 +560,7 @@ hr.divider{border:none;border-top:1.5px solid var(--border);margin:16px 0}
       <div class="tbl-wrap">
         <div class="tbl-head"><div class="tbl-title">Stock Entry Table</div></div>
         <div style="overflow-x:auto"><table id="stockEntryTable">
-          <thead><tr><th>Item</th><th>Category</th><th>Price</th><th id="se-b1h">Branch 1 — Set To</th><th id="se-b2h">Branch 2 — Set To</th><th>Curr B1</th><th>Curr B2</th></tr></thead>
+          <thead><tr><th>Item</th><th>Category</th><th>Price</th><th id="se-b1h">Branch 1 — Set To</th><th id="se-b2h">Branch 2 — Set To</th><th id="se-b3h">Branch 3 — Set To</th><th>Curr B1</th><th>Curr B2</th><th>Curr B3</th></tr></thead>
           <tbody id="stockEntryBody"></tbody>
         </table></div>
       </div>
@@ -622,7 +624,7 @@ hr.divider{border:none;border-top:1.5px solid var(--border);margin:16px 0}
         <button class="btn btn-gold" onclick="openProductModal()">＋ Add Product</button>
       </div>
       <div class="tbl-wrap">
-        <table><thead><tr><th>Item</th><th>Category</th><th>Price</th><th id="inv-b1h">Stock Br.1</th><th id="inv-b2h">Stock Br.2</th><th>Alert At</th><th>Status</th><th>Actions</th></tr></thead>
+        <table><thead><tr><th>Item</th><th>Category</th><th>Price</th><th id="inv-b1h">Stock Br.1</th><th id="inv-b2h">Stock Br.2</th><th id="inv-b3h">Stock Br.3</th><th>Alert At</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody id="inventoryBody"></tbody></table>
       </div>
     </div>
@@ -631,7 +633,7 @@ hr.divider{border:none;border-top:1.5px solid var(--border);margin:16px 0}
     <div id="tab-history" class="tab-content" style="display:none">
       <div class="sec-title">📋 Sales History</div>
       <div class="filter-row">
-        <select id="histBranchFilter" onchange="renderHistory()"><option value="">All Branches</option><option value="b1">Branch 1</option><option value="b2">Branch 2</option></select>
+        <select id="histBranchFilter" onchange="renderHistory()"><option value="">All Branches</option><option value="b1">Branch 1</option><option value="b2">Branch 2</option><option value="b3">Branch 3</option></select>
         <input type="date" id="histDateFilter" onchange="renderHistory()"/>
         <button class="btn btn-green" onclick="exportCSV()">⬇ Export CSV</button>
       </div>
@@ -646,7 +648,7 @@ hr.divider{border:none;border-top:1.5px solid var(--border);margin:16px 0}
       <div class="sec-title">📈 Reports</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;align-items:flex-end">
         <div class="form-group" style="flex:none"><label>Date</label><input type="date" id="repDate" style="width:160px"/></div>
-        <div class="form-group" style="flex:none"><label>Branch</label><select id="repBranch" style="width:160px"><option value="">All Branches</option><option value="b1">Branch 1</option><option value="b2">Branch 2</option></select></div>
+        <div class="form-group" style="flex:none"><label>Branch</label><select id="repBranch" style="width:160px"><option value="">All Branches</option><option value="b1">Branch 1</option><option value="b2">Branch 2</option><option value="b3">Branch 3</option></select></div>
         <button class="btn btn-gold" onclick="generateReport()" style="margin-bottom:0">▶ Generate</button>
         <button class="btn btn-green" onclick="exportExcel()" style="margin-bottom:0">📊 Excel</button>
         <button class="btn btn-outline" onclick="printReport()" style="margin-bottom:0">🖨 Print</button>
@@ -654,7 +656,7 @@ hr.divider{border:none;border-top:1.5px solid var(--border);margin:16px 0}
       <div class="report-sections" id="reportSections" style="display:none">
         <div class="tbl-wrap">
           <div class="tbl-head"><div class="tbl-title">Sales Summary</div></div>
-          <table><thead><tr><th>Metric</th><th id="rep-b1h">Branch 1</th><th id="rep-b2h">Branch 2</th><th>Total</th></tr></thead>
+          <table><thead><tr><th>Metric</th><th id="rep-b1h">Branch 1</th><th id="rep-b2h">Branch 2</th><th id="rep-b3h">Branch 3</th><th>Total</th></tr></thead>
           <tbody id="repSummaryBody"></tbody></table>
         </div>
         <div class="tbl-wrap">
@@ -664,12 +666,12 @@ hr.divider{border:none;border-top:1.5px solid var(--border);margin:16px 0}
         </div>
         <div class="tbl-wrap">
           <div class="tbl-head"><div class="tbl-title">Item-wise Sales</div></div>
-          <table><thead><tr><th>Item</th><th>Category</th><th id="rep-b1ih">Qty Br.1</th><th id="rep-b2ih">Qty Br.2</th><th>Total Qty</th><th>Revenue</th></tr></thead>
+          <table><thead><tr><th>Item</th><th>Category</th><th id="rep-b1ih">Qty Br.1</th><th id="rep-b2ih">Qty Br.2</th><th id="rep-b3ih">Qty Br.3</th><th>Total Qty</th><th>Revenue</th></tr></thead>
           <tbody id="repItemBody"></tbody></table>
         </div>
         <div class="tbl-wrap">
           <div class="tbl-head"><div class="tbl-title">Stock Snapshot</div></div>
-          <table><thead><tr><th>Item</th><th>Category</th><th id="rep-b1sh">Stock Br.1</th><th id="rep-b2sh">Stock Br.2</th><th>Alert At</th><th>Status</th></tr></thead>
+          <table><thead><tr><th>Item</th><th>Category</th><th id="rep-b1sh">Stock Br.1</th><th id="rep-b2sh">Stock Br.2</th><th id="rep-b3sh">Stock Br.3</th><th>Alert At</th><th>Status</th></tr></thead>
           <tbody id="repStockBody"></tbody></table>
         </div>
       </div>
@@ -694,6 +696,7 @@ hr.divider{border:none;border-top:1.5px solid var(--border);margin:16px 0}
           <div style="display:flex;flex-direction:column;gap:10px">
             <div class="form-group"><label>Branch 1 Name</label><input type="text" id="adm-b1name" placeholder="Branch 1"/></div>
             <div class="form-group"><label>Branch 2 Name</label><input type="text" id="adm-b2name" placeholder="Branch 2"/></div>
+            <div class="form-group"><label>Branch 3 Name</label><input type="text" id="adm-b3name" placeholder="Branch 3"/></div>
             <button class="btn btn-gold" onclick="saveBranchNames()">💾 Save Branch Names</button>
           </div>
         </div>
@@ -714,6 +717,7 @@ hr.divider{border:none;border-top:1.5px solid var(--border);margin:16px 0}
             <div style="display:flex;gap:8px;align-items:center"><label style="font-size:.82rem;font-weight:600;color:var(--text2);width:90px;flex:none">Admin PIN</label><input type="password" id="pin-admin" placeholder="4 digits" maxlength="4" style="flex:1"/><button class="btn btn-sm btn-choc" onclick="updatePIN('admin')">Set</button></div>
             <div style="display:flex;gap:8px;align-items:center"><label style="font-size:.82rem;font-weight:600;color:var(--text2);width:90px;flex:none">Branch 1</label><input type="password" id="pin-b1" placeholder="4 digits" maxlength="4" style="flex:1"/><button class="btn btn-sm btn-choc" onclick="updatePIN('b1')">Set</button></div>
             <div style="display:flex;gap:8px;align-items:center"><label style="font-size:.82rem;font-weight:600;color:var(--text2);width:90px;flex:none">Branch 2</label><input type="password" id="pin-b2" placeholder="4 digits" maxlength="4" style="flex:1"/><button class="btn btn-sm btn-choc" onclick="updatePIN('b2')">Set</button></div>
+            <div style="display:flex;gap:8px;align-items:center"><label style="font-size:.82rem;font-weight:600;color:var(--text2);width:90px;flex:none">Branch 3</label><input type="password" id="pin-b3" placeholder="4 digits" maxlength="4" style="flex:1"/><button class="btn btn-sm btn-choc" onclick="updatePIN('b3')">Set</button></div>
           </div>
         </div>
         <div class="settings-card">
@@ -777,6 +781,7 @@ hr.divider{border:none;border-top:1.5px solid var(--border);margin:16px 0}
       <div class="form-row"><div class="form-group"><label>Item Name *</label><input type="text" id="pm-name" placeholder="e.g. Classic Brownie"/></div><div class="form-group"><label>Category *</label><select id="pm-cat"><option value="brownie">Brownie's</option><option value="cake">Cakes</option><option value="tresleche">Tres Leches</option><option value="bun">Bun</option><option value="cheesecake">Mini Round Cheese Cake</option><option value="berliner">BomBeleni (Berliners)</option><option value="drinks">Dink's</option><option value="special">Special</option></select></div></div>
       <div class="form-row"><div class="form-group"><label>Price (₹) *</label><input type="number" id="pm-price" placeholder="0"/></div><div class="form-group"><label>Low Stock Alert At</label><input type="number" id="pm-min" placeholder="5" value="5"/></div></div>
       <div class="form-row"><div class="form-group"><label id="pm-s1lbl">Opening Stock Br.1</label><input type="number" id="pm-s1" placeholder="0" value="0"/></div><div class="form-group"><label id="pm-s2lbl">Opening Stock Br.2</label><input type="number" id="pm-s2" placeholder="0" value="0"/></div></div>
+      <div class="form-row one"><div class="form-group"><label id="pm-s3lbl">Opening Stock Br.3</label><input type="number" id="pm-s3" placeholder="0" value="0"/></div></div>
     </div>
     <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('productModal')">Cancel</button><button class="btn btn-gold" onclick="saveProduct()">Save Product</button></div>
   </div>
@@ -809,32 +814,32 @@ const db = firebase.firestore();
 
 // ═══════════════ DEFAULT PRODUCTS ═══════════════
 const DEF_PRODUCTS = [
-  {name:"Classic Brownie",cat:"brownie",price:60,minStock:5,stock1:0,stock2:0},
-  {name:"Double Brownie",cat:"brownie",price:110,minStock:5,stock1:0,stock2:0},
-  {name:"Triple Chocolate Brownie",cat:"brownie",price:130,minStock:5,stock1:0,stock2:0},
-  {name:"Nutella Brownie",cat:"brownie",price:120,minStock:5,stock1:0,stock2:0},
-  {name:"Oreo Brownie",cat:"brownie",price:120,minStock:5,stock1:0,stock2:0},
-  {name:"Brownie with Ice Cream",cat:"brownie",price:110,minStock:5,stock1:0,stock2:0},
-  {name:"Brownie with Hot Chocolate",cat:"brownie",price:120,minStock:5,stock1:0,stock2:0},
-  {name:"Japanese Cheese Cake",cat:"cake",price:90,minStock:3,stock1:0,stock2:0},
-  {name:"Matilda (Moist Chocolate Cake)",cat:"cake",price:120,minStock:3,stock1:0,stock2:0},
-  {name:"Matilda with Ice Cream",cat:"cake",price:150,minStock:3,stock1:0,stock2:0},
-  {name:"Rosemilk Tres Leches",cat:"tresleche",price:120,minStock:5,stock1:0,stock2:0},
-  {name:"Rasamalai Tres Leches",cat:"tresleche",price:130,minStock:5,stock1:0,stock2:0},
-  {name:"Korean Cream Cheese Bun",cat:"bun",price:120,minStock:5,stock1:0,stock2:0},
-  {name:"Blueberry Cheese Cake",cat:"cheesecake",price:130,minStock:3,stock1:0,stock2:0},
-  {name:"Kinder Bueno Cheese Cake",cat:"cheesecake",price:150,minStock:3,stock1:0,stock2:0},
-  {name:"Dark Berliner",cat:"berliner",price:100,minStock:5,stock1:0,stock2:0},
-  {name:"Nutella Berliner",cat:"berliner",price:130,minStock:5,stock1:0,stock2:0},
-  {name:"Hot Chocolate",cat:"drinks",price:70,minStock:10,stock1:0,stock2:0},
-  {name:"Melon Milk",cat:"drinks",price:50,minStock:10,stock1:0,stock2:0},
-  {name:"London Strawberry Chocolate",cat:"special",price:120,minStock:5,stock1:0,stock2:0}
+  {name:"Classic Brownie",cat:"brownie",price:60,minStock:5,stock1:0,stock2:0,stock3:0},
+  {name:"Double Brownie",cat:"brownie",price:110,minStock:5,stock1:0,stock2:0,stock3:0},
+  {name:"Triple Chocolate Brownie",cat:"brownie",price:130,minStock:5,stock1:0,stock2:0,stock3:0},
+  {name:"Nutella Brownie",cat:"brownie",price:120,minStock:5,stock1:0,stock2:0,stock3:0},
+  {name:"Oreo Brownie",cat:"brownie",price:120,minStock:5,stock1:0,stock2:0,stock3:0},
+  {name:"Brownie with Ice Cream",cat:"brownie",price:110,minStock:5,stock1:0,stock2:0,stock3:0},
+  {name:"Brownie with Hot Chocolate",cat:"brownie",price:120,minStock:5,stock1:0,stock2:0,stock3:0},
+  {name:"Japanese Cheese Cake",cat:"cake",price:90,minStock:3,stock1:0,stock2:0,stock3:0},
+  {name:"Matilda (Moist Chocolate Cake)",cat:"cake",price:120,minStock:3,stock1:0,stock2:0,stock3:0},
+  {name:"Matilda with Ice Cream",cat:"cake",price:150,minStock:3,stock1:0,stock2:0,stock3:0},
+  {name:"Rosemilk Tres Leches",cat:"tresleche",price:120,minStock:5,stock1:0,stock2:0,stock3:0},
+  {name:"Rasamalai Tres Leches",cat:"tresleche",price:130,minStock:5,stock1:0,stock2:0,stock3:0},
+  {name:"Korean Cream Cheese Bun",cat:"bun",price:120,minStock:5,stock1:0,stock2:0,stock3:0},
+  {name:"Blueberry Cheese Cake",cat:"cheesecake",price:130,minStock:3,stock1:0,stock2:0,stock3:0},
+  {name:"Kinder Bueno Cheese Cake",cat:"cheesecake",price:150,minStock:3,stock1:0,stock2:0,stock3:0},
+  {name:"Dark Berliner",cat:"berliner",price:100,minStock:5,stock1:0,stock2:0,stock3:0},
+  {name:"Nutella Berliner",cat:"berliner",price:130,minStock:5,stock1:0,stock2:0,stock3:0},
+  {name:"Hot Chocolate",cat:"drinks",price:70,minStock:10,stock1:0,stock2:0,stock3:0},
+  {name:"Melon Milk",cat:"drinks",price:50,minStock:10,stock1:0,stock2:0,stock3:0},
+  {name:"London Strawberry Chocolate",cat:"special",price:120,minStock:5,stock1:0,stock2:0,stock3:0}
 ];
 
 // ═══════════════ STATE ═══════════════
 let currentRole = null;
 let products = [], sales = [], stockLogs = [], transfers = [];
-let config = {pins:{admin:'1234',b1:'1111',b2:'2222'}, billCounter:0, gstRate:5, b1name:'Branch 1', b2name:'Branch 2'};
+let config = {pins:{admin:'1234',b1:'1111',b2:'2222',b3:'3333'}, billCounter:0, gstRate:5, b1name:'Branch 1', b2name:'Branch 2', b3name:'Branch 3'};
 let cart = [];
 let parcelCharge = 0;
 let activeTab = 'dashboard';
@@ -858,7 +863,7 @@ function fmtDate(ts){if(!ts)return'—';const d=ts.toDate?ts.toDate():new Date(t
 function fmtDateTime(ts){if(!ts)return'—';const d=ts.toDate?ts.toDate():new Date(ts);return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})+' '+d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});}
 function todayStr(){return new Date().toISOString().slice(0,10);}
 function padBill(n){return '#'+String(n).padStart(6,'0');}
-function getBranchName(b){return b==='b1'?config.b1name||'Branch 1':config.b2name||'Branch 2';}
+function getBranchName(b){return b==='b1'?config.b1name||'Branch 1':b==='b2'?config.b2name||'Branch 2':config.b3name||'Branch 3';}
 
 function catBadge(cat){
   const map={brownie:'badge-brownie',cake:'badge-cake',tresleche:'badge-tresleche',bun:'badge-bun',cheesecake:'badge-cheesecake',berliner:'badge-berliner',drinks:'badge-drinks',special:'badge-special'};
@@ -886,7 +891,7 @@ function selectRole(role){
   updateDots();
   document.getElementById('loginStep1').style.display='none';
   document.getElementById('loginStep2').style.display='block';
-  const names={admin:'Administrator',b1:config.b1name||'Branch 1',b2:config.b2name||'Branch 2'};
+  const names={admin:'Administrator',b1:config.b1name||'Branch 1',b2:config.b2name||'Branch 2',b3:config.b3name||'Branch 3'};
   document.getElementById('pinPrompt').textContent=`Enter PIN — ${names[role]}`;
 }
 function backToRoles(){
@@ -924,7 +929,7 @@ function loginAs(role){
   currentRole=role;
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('appScreen').classList.add('show');
-  const roleNames={admin:'Admin',b1:getBranchName('b1'),b2:getBranchName('b2')};
+  const roleNames={admin:'Admin',b1:getBranchName('b1'),b2:getBranchName('b2'),b3:getBranchName('b3')};
   document.getElementById('hdrRole').textContent=roleNames[role]||role.toUpperCase();
   document.getElementById('hdrBranch').textContent=role==='admin'?'All Branches':getBranchName(role);
 
@@ -971,7 +976,7 @@ async function startListeners(){
   const configRef=db.collection('nb_config').doc('settings');
   const snap=await configRef.get();
   if(!snap.exists){
-    await configRef.set({pins:{admin:'1234',b1:'1111',b2:'2222'},billCounter:0,gstRate:5,b1name:'Branch 1',b2name:'Branch 2'});
+    await configRef.set({pins:{admin:'1234',b1:'1111',b2:'2222',b3:'3333'},billCounter:0,gstRate:5,b1name:'Branch 1',b2name:'Branch 2',b3name:'Branch 3'});
     // Seed products
     const batch=db.batch();
     DEF_PRODUCTS.forEach(p=>{
@@ -1042,26 +1047,21 @@ async function startListeners(){
 function updateBranchNameLabels(){
   const b1=config.b1name||'Branch 1';
   const b2=config.b2name||'Branch 2';
-  // Nav/header
+  const b3=config.b3name||'Branch 3';
+  // Header
   document.getElementById('hdrBranch').textContent=currentRole==='admin'?'All Branches':getBranchName(currentRole);
-  // Role buttons on login
+  // Role buttons
   const rb1=document.getElementById('roleB1Name');if(rb1)rb1.textContent=b1;
   const rb2=document.getElementById('roleB2Name');if(rb2)rb2.textContent=b2;
-  // Inventory headers
-  ['inv-b1h','inv-b2h','se-b1h','se-b2h','rep-b1h','rep-b2h','rep-b1ih','rep-b2ih','rep-b1sh','rep-b2sh'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(!el)return;
-    if(id.includes('b1'))el.textContent=el.textContent.replace(/Branch \S+/,b1);
-    else el.textContent=el.textContent.replace(/Branch \S+/,b2);
-  });
-  document.querySelectorAll('[id^="inv-b1h"],[id^="inv-b2h"],[id^="se-b1h"],[id^="se-b2h"]').forEach(el=>{
-    if(el.id.includes('b1'))el.textContent=`Stock ${b1}`;
-    else el.textContent=`Stock ${b2}`;
-  });
+  const rb3=document.getElementById('roleB3Name');if(rb3)rb3.textContent=b3;
+  // Stock entry headers
   const seh1=document.getElementById('se-b1h');if(seh1)seh1.textContent=`${b1} — Set To`;
   const seh2=document.getElementById('se-b2h');if(seh2)seh2.textContent=`${b2} — Set To`;
+  const seh3=document.getElementById('se-b3h');if(seh3)seh3.textContent=`${b3} — Set To`;
+  // Inventory headers
   const inv1=document.getElementById('inv-b1h');if(inv1)inv1.textContent=`Stock ${b1}`;
   const inv2=document.getElementById('inv-b2h');if(inv2)inv2.textContent=`Stock ${b2}`;
+  const inv3=document.getElementById('inv-b3h');if(inv3)inv3.textContent=`Stock ${b3}`;
   // Transfer options
   const tf1=document.getElementById('tfDir1to2Opt');if(tf1)tf1.textContent=`${b1} → ${b2}`;
   const tf2=document.getElementById('tfDir2to1Opt');if(tf2)tf2.textContent=`${b2} → ${b1}`;
@@ -1069,21 +1069,33 @@ function updateBranchNameLabels(){
   const tfb2c=document.getElementById('tfB2CurrLbl');if(tfb2c)tfb2c.textContent=b2+' Current';
   const tfb1a=document.getElementById('tfB1AfterLbl');if(tfb1a)tfb1a.textContent=b1+' After';
   const tfb2a=document.getElementById('tfB2AfterLbl');if(tfb2a)tfb2a.textContent=b2+' After';
+  // Reports headers
+  const rh1=document.getElementById('rep-b1h');if(rh1)rh1.textContent=b1;
+  const rh2=document.getElementById('rep-b2h');if(rh2)rh2.textContent=b2;
+  const rh3=document.getElementById('rep-b3h');if(rh3)rh3.textContent=b3;
+  const ri1=document.getElementById('rep-b1ih');if(ri1)ri1.textContent=`Qty ${b1}`;
+  const ri2=document.getElementById('rep-b2ih');if(ri2)ri2.textContent=`Qty ${b2}`;
+  const ri3=document.getElementById('rep-b3ih');if(ri3)ri3.textContent=`Qty ${b3}`;
+  const rs1=document.getElementById('rep-b1sh');if(rs1)rs1.textContent=`Stock ${b1}`;
+  const rs2=document.getElementById('rep-b2sh');if(rs2)rs2.textContent=`Stock ${b2}`;
+  const rs3=document.getElementById('rep-b3sh');if(rs3)rs3.textContent=`Stock ${b3}`;
   // Billing title
   const brt=document.getElementById('billBranchTitle');
   if(brt&&currentRole){brt.innerHTML=`🧾 Billing <small>${currentRole==='admin'?'All Branches':getBranchName(currentRole)}</small>`;}
   // History filter
   const hbf=document.getElementById('histBranchFilter');
-  if(hbf){
-    hbf.options[1].text=b1;hbf.options[1].value='b1';
-    hbf.options[2].text=b2;hbf.options[2].value='b2';
-  }
+  if(hbf&&hbf.options.length>=4){hbf.options[1].text=b1;hbf.options[2].text=b2;hbf.options[3].text=b3;}
+  // Reports filter
+  const rbf=document.getElementById('repBranch');
+  if(rbf&&rbf.options.length>=4){rbf.options[1].text=b1;rbf.options[2].text=b2;rbf.options[3].text=b3;}
   // Admin inputs
   const ab1=document.getElementById('adm-b1name');if(ab1)ab1.value=b1;
   const ab2=document.getElementById('adm-b2name');if(ab2)ab2.value=b2;
+  const ab3=document.getElementById('adm-b3name');if(ab3)ab3.value=b3;
   // Product modal labels
   const pm1=document.getElementById('pm-s1lbl');if(pm1)pm1.textContent=`Opening Stock ${b1}`;
   const pm2=document.getElementById('pm-s2lbl');if(pm2)pm2.textContent=`Opening Stock ${b2}`;
+  const pm3=document.getElementById('pm-s3lbl');if(pm3)pm3.textContent=`Opening Stock ${b3}`;
   // Dashboard label
   const dl=document.getElementById('dashBranchLabel');
   if(dl&&currentRole)dl.textContent=currentRole==='admin'?'All Branches':getBranchName(currentRole);
@@ -1098,6 +1110,7 @@ function renderDashboard(){
   });
   if(currentRole==='b1')filtered=filtered.filter(s=>s.branch==='b1');
   if(currentRole==='b2')filtered=filtered.filter(s=>s.branch==='b2');
+  if(currentRole==='b3')filtered=filtered.filter(s=>s.branch==='b3');
 
   const totalRev=filtered.reduce((a,s)=>a+(s.total||0),0);
   const orders=filtered.length;
@@ -1128,6 +1141,7 @@ function renderDashboard(){
   products.forEach(p=>{
     if((p.stock1||0)<=(p.minStock||0))lowItems.push({...p,branch:'b1',stock:p.stock1||0});
     if((p.stock2||0)<=(p.minStock||0))lowItems.push({...p,branch:'b2',stock:p.stock2||0});
+    if((p.stock3||0)<=(p.minStock||0))lowItems.push({...p,branch:'b3',stock:p.stock3||0});
   });
   const lowFilter=currentRole==='admin'?lowItems:lowItems.filter(l=>l.branch===currentRole);
   const lowBody=document.getElementById('dashLowTbl');
@@ -1155,7 +1169,7 @@ function setCat(c){activeCat=c;buildCatFilters();renderMenuGrid();}
 
 function renderMenuGrid(){
   const q=document.getElementById('menuSearch')?.value?.toLowerCase()||'';
-  const branch=currentRole==='b2'?'b2':'b1';
+  const branch=currentRole==='b2'?'b2':currentRole==='b3'?'b3':'b1';
   let list=products.filter(p=>{
     if(activeCat!=='all'&&p.cat!==activeCat)return false;
     if(q&&!p.name.toLowerCase().includes(q))return false;
@@ -1164,7 +1178,7 @@ function renderMenuGrid(){
   const grid=document.getElementById('menuGrid');
   if(!grid)return;
   if(list.length===0){grid.innerHTML='<div style="color:var(--muted);font-size:.87rem;padding:20px">No items found</div>';return;}
-  const stock_key=branch==='b1'?'stock1':'stock2';
+  const stock_key=branch==='b1'?'stock1':branch==='b2'?'stock2':'stock3';
   grid.innerHTML=list.map(p=>{
     const stk=p[stock_key]||0;
     const oos=stk<=0;
@@ -1206,7 +1220,6 @@ function setParcel(val){
   const mpr=document.getElementById('mParcelRow');if(mpr)mpr.style.display=val>0?'flex':'none';
   updateCartTotals();
 }
-  function cartItemsHTML(){
   if(cart.length===0)return '<div class="cart-empty"><span>🍰</span>Add items to cart</div>';
   return cart.map((c,i)=>`
     <div class="cart-item">
@@ -1280,7 +1293,7 @@ function updateCartTotals(){
 
 async function generateInvoice(){
   if(cart.length===0){toast('Cart is empty','warn');return;}
-  const branch=currentRole==='admin'?'b1':currentRole;
+  const branch=(currentRole==='admin')?'b1':currentRole;
   const sub=cart.reduce((a,c)=>a+c.price*c.qty,0);
   const gstRate=config.gstRate??0;
   const gst=sub*(gstRate/100);
@@ -1292,7 +1305,7 @@ async function generateInvoice(){
   try{
     const batch=db.batch();
     // Deduct stock
-    const stockKey=branch==='b1'?'stock1':'stock2';
+    const stockKey=branch==='b1'?'stock1':branch==='b2'?'stock2':'stock3';
     cart.forEach(c=>{
       const pRef=db.collection('nb_products').doc(c.id);
       const prod=products.find(p=>p.id===c.id);
@@ -1435,8 +1448,10 @@ function renderStockEntry(){
       <td class="font-mono">₹${p.price}</td>
       <td><input type="number" min="0" placeholder="—" data-id="${p.id}" data-branch="1" style="width:80px;padding:6px 8px"/></td>
       <td><input type="number" min="0" placeholder="—" data-id="${p.id}" data-branch="2" style="width:80px;padding:6px 8px"/></td>
+      <td><input type="number" min="0" placeholder="—" data-id="${p.id}" data-branch="3" style="width:80px;padding:6px 8px"/></td>
       <td class="font-mono ${(p.stock1||0)<=(p.minStock||0)?'text-red':''}">${p.stock1||0}</td>
       <td class="font-mono ${(p.stock2||0)<=(p.minStock||0)?'text-red':''}">${p.stock2||0}</td>
+      <td class="font-mono ${(p.stock3||0)<=(p.minStock||0)?'text-red':''}">${p.stock3||0}</td>
     </tr>`).join('');
   renderStockEntryCards();
   renderStockLog();
@@ -1451,6 +1466,7 @@ function renderStockEntryCards(){
   [...products].reverse().forEach(p=>{
     const card=document.createElement('div');
     card.className='se-card';
+    const b3n=config.b3name||'Branch 3';
     card.innerHTML=`
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
         <div class="se-card-name">${p.name}</div>
@@ -1459,12 +1475,17 @@ function renderStockEntryCards(){
       <div class="se-card-row">
         <span class="se-branch-label">📍 ${b1n}</span>
         <span class="se-curr">Now: ${p.stock1||0}</span>
-        <input type="number" min="0" placeholder="Set to…" data-id="${p.id}" data-branch="1" style="width:100px"/>
+        <input type="number" min="0" placeholder="Set to…" data-id="${p.id}" data-branch="1" style="width:90px"/>
       </div>
       <div class="se-card-row">
         <span class="se-branch-label">📍 ${b2n}</span>
         <span class="se-curr">Now: ${p.stock2||0}</span>
-        <input type="number" min="0" placeholder="Set to…" data-id="${p.id}" data-branch="2" style="width:100px"/>
+        <input type="number" min="0" placeholder="Set to…" data-id="${p.id}" data-branch="2" style="width:90px"/>
+      </div>
+      <div class="se-card-row">
+        <span class="se-branch-label">📍 ${b3n}</span>
+        <span class="se-curr">Now: ${p.stock3||0}</span>
+        <input type="number" min="0" placeholder="Set to…" data-id="${p.id}" data-branch="3" style="width:90px"/>
       </div>`;
     insertAfter.after(card);
   });
@@ -1481,7 +1502,7 @@ async function saveStockEntry(){
     if(v==='')return;
     const id=inp.dataset.id;
     const br=inp.dataset.branch;
-    const field=br==='1'?'stock1':'stock2';
+    const field=br==='1'?'stock1':br==='2'?'stock2':'stock3';
     if(!updates[id])updates[id]={};
     updates[id][field]=parseInt(v)||0;
   });
@@ -1489,7 +1510,7 @@ async function saveStockEntry(){
   for(const [id,upd] of Object.entries(updates)){
     batch.update(db.collection('nb_products').doc(id),upd);
     const p=products.find(x=>x.id===id);
-    logs.push({date,ts:firebase.firestore.FieldValue.serverTimestamp(),productId:id,productName:p?.name||'',cat:p?.cat||'',stock1Set:upd.stock1??null,stock2Set:upd.stock2??null,enteredBy:currentRole});
+    logs.push({date,ts:firebase.firestore.FieldValue.serverTimestamp(),productId:id,productName:p?.name||'',cat:p?.cat||'',stock1Set:upd.stock1??null,stock2Set:upd.stock2??null,stock3Set:upd.stock3??null,enteredBy:currentRole});
   }
   logs.forEach(l=>{const r=db.collection('nb_stock_log').doc();batch.set(r,l);});
   try{await batch.commit();toast('Stock saved!','ok');}
@@ -1614,13 +1635,15 @@ function renderInventory(){
   body.innerHTML=list.map(p=>{
     const s1ok=(p.stock1||0)>(p.minStock||0);
     const s2ok=(p.stock2||0)>(p.minStock||0);
-    const overallOk=s1ok&&s2ok;
+    const s3ok=(p.stock3||0)>(p.minStock||0);
+    const overallOk=s1ok&&s2ok&&s3ok;
     return `<tr>
       <td style="font-weight:600">${p.name}</td>
       <td>${catBadge(p.cat)}</td>
       <td class="font-mono text-gold">₹${p.price}</td>
       <td class="font-mono ${s1ok?'text-green':'text-red'}" style="${s1ok?'':'font-weight:700'}">${p.stock1||0}</td>
       <td class="font-mono ${s2ok?'text-green':'text-red'}" style="${s2ok?'':'font-weight:700'}">${p.stock2||0}</td>
+      <td class="font-mono ${s3ok?'text-green':'text-red'}" style="${s3ok?'':'font-weight:700'}">${p.stock3||0}</td>
       <td class="font-mono">${p.minStock||0}</td>
       <td><span class="badge badge-${overallOk?'ok':'low'}">${overallOk?'OK':'LOW'}</span></td>
       <td>
@@ -1641,7 +1664,8 @@ function renderInventoryCards(list){
   list.forEach(p=>{
     const s1ok=(p.stock1||0)>(p.minStock||0);
     const s2ok=(p.stock2||0)>(p.minStock||0);
-    const overallOk=s1ok&&s2ok;
+    const s3ok=(p.stock3||0)>(p.minStock||0);
+    const overallOk=s1ok&&s2ok&&s3ok;
     const b1n=config.b1name||'Branch 1';const b2n=config.b2name||'Branch 2';
     const card=document.createElement('div');
     card.className='inv-card';
@@ -1656,6 +1680,7 @@ function renderInventoryCards(list){
       <div class="inv-card-mid">
         <span class="inv-stock-pill ${s1ok?'ok':'low'}">${b1n}: ${p.stock1||0}</span>
         <span class="inv-stock-pill ${s2ok?'ok':'low'}">${b2n}: ${p.stock2||0}</span>
+        <span class="inv-stock-pill ${s3ok?'ok':'low'}">${config.b3name||'Branch 3'}: ${p.stock3||0}</span>
         <span class="badge badge-${overallOk?'ok':'low'}">${overallOk?'OK':'LOW'}</span>
       </div>
       <div class="inv-card-actions">
@@ -1677,6 +1702,7 @@ function openProductModal(id){
     document.getElementById('pm-min').value=p.minStock||0;
     document.getElementById('pm-s1').value=p.stock1||0;
     document.getElementById('pm-s2').value=p.stock2||0;
+    document.getElementById('pm-s3').value=p.stock3||0;
   }else{
     ['pm-name','pm-cat'].forEach(id2=>{const el=document.getElementById(id2);if(el&&id2==='pm-name')el.value='';});
     document.getElementById('pm-price').value='';
@@ -1694,8 +1720,9 @@ async function saveProduct(){
   const minStock=parseInt(document.getElementById('pm-min')?.value)||0;
   const stock1=parseInt(document.getElementById('pm-s1')?.value)||0;
   const stock2=parseInt(document.getElementById('pm-s2')?.value)||0;
+  const stock3=parseInt(document.getElementById('pm-s3')?.value)||0;
   if(!name||!price){toast('Name and price required','warn');return;}
-  const data={name,cat,price,minStock,stock1,stock2};
+  const data={name,cat,price,minStock,stock1,stock2,stock3};
   try{
     if(editProductId){
       await db.collection('nb_products').doc(editProductId).update(data);
@@ -1760,7 +1787,7 @@ async function deleteSale(id){
   try{
     const batch=db.batch();
     // Restore stock back to branch
-    const stockKey=s.branch==='b1'?'stock1':'stock2';
+    const stockKey=s.branch==='b1'?'stock1':s.branch==='b2'?'stock2':'stock3';
     (s.items||[]).forEach(item=>{
       const prod=products.find(p=>p.id===item.id);
       if(!prod)return;
@@ -1802,14 +1829,15 @@ function generateReport(){
   // Summary
   const b1s=list.filter(s=>s.branch==='b1');
   const b2s=list.filter(s=>s.branch==='b2');
+  const b3s=list.filter(s=>s.branch==='b3');
   const metrics=[
-    ['Orders',b1s.length,b2s.length,list.length],
-    ['Subtotal',fmtMoney(b1s.reduce((a,s)=>a+(s.sub||0),0)),fmtMoney(b2s.reduce((a,s)=>a+(s.sub||0),0)),fmtMoney(list.reduce((a,s)=>a+(s.sub||0),0))],
-    ['GST',fmtMoney(b1s.reduce((a,s)=>a+(s.gst||0),0)),fmtMoney(b2s.reduce((a,s)=>a+(s.gst||0),0)),fmtMoney(list.reduce((a,s)=>a+(s.gst||0),0))],
-    ['Revenue',fmtMoney(b1s.reduce((a,s)=>a+(s.total||0),0)),fmtMoney(b2s.reduce((a,s)=>a+(s.total||0),0)),fmtMoney(list.reduce((a,s)=>a+(s.total||0),0))],
-    ['Avg Bill',fmtMoney(b1s.length?b1s.reduce((a,s)=>a+(s.total||0),0)/b1s.length:0),fmtMoney(b2s.length?b2s.reduce((a,s)=>a+(s.total||0),0)/b2s.length:0),fmtMoney(list.length?list.reduce((a,s)=>a+(s.total||0),0)/list.length:0)]
+    ['Orders',b1s.length,b2s.length,b3s.length,list.length],
+    ['Subtotal',fmtMoney(b1s.reduce((a,s)=>a+(s.sub||0),0)),fmtMoney(b2s.reduce((a,s)=>a+(s.sub||0),0)),fmtMoney(b3s.reduce((a,s)=>a+(s.sub||0),0)),fmtMoney(list.reduce((a,s)=>a+(s.sub||0),0))],
+    ['GST',fmtMoney(b1s.reduce((a,s)=>a+(s.gst||0),0)),fmtMoney(b2s.reduce((a,s)=>a+(s.gst||0),0)),fmtMoney(b3s.reduce((a,s)=>a+(s.gst||0),0)),fmtMoney(list.reduce((a,s)=>a+(s.gst||0),0))],
+    ['Revenue',fmtMoney(b1s.reduce((a,s)=>a+(s.total||0),0)),fmtMoney(b2s.reduce((a,s)=>a+(s.total||0),0)),fmtMoney(b3s.reduce((a,s)=>a+(s.total||0),0)),fmtMoney(list.reduce((a,s)=>a+(s.total||0),0))],
+    ['Avg Bill',fmtMoney(b1s.length?b1s.reduce((a,s)=>a+(s.total||0),0)/b1s.length:0),fmtMoney(b2s.length?b2s.reduce((a,s)=>a+(s.total||0),0)/b2s.length:0),fmtMoney(b3s.length?b3s.reduce((a,s)=>a+(s.total||0),0)/b3s.length:0),fmtMoney(list.length?list.reduce((a,s)=>a+(s.total||0),0)/list.length:0)]
   ];
-  document.getElementById('repSummaryBody').innerHTML=metrics.map(r=>`<tr><td style="font-weight:600">${r[0]}</td><td class="font-mono">${r[1]}</td><td class="font-mono">${r[2]}</td><td class="font-mono text-gold">${r[3]}</td></tr>`).join('');
+  document.getElementById('repSummaryBody').innerHTML=metrics.map(r=>`<tr><td style="font-weight:600">${r[0]}</td><td class="font-mono">${r[1]}</td><td class="font-mono">${r[2]}</td><td class="font-mono">${r[3]}</td><td class="font-mono text-gold">${r[4]}</td></tr>`).join('');
 
   // Category
   const catR={},catQ={};
@@ -1817,14 +1845,14 @@ function generateReport(){
   document.getElementById('repCatBody').innerHTML=Object.entries(catR).sort((a,b)=>b[1]-a[1]).map(([c,r])=>`<tr><td>${catBadge(c)}</td><td class="font-mono">${catQ[c]}</td><td class="font-mono text-gold">${fmtMoney(r)}</td></tr>`).join('')||'<tr class="no-data-row"><td colspan="3">No sales</td></tr>';
 
   // Item wise
-  const iR={},iQ1={},iQ2={},iCat={};
-  list.forEach(s=>{(s.items||[]).forEach(i=>{iR[i.name]=(iR[i.name]||0)+i.price*i.qty;iCat[i.name]=i.cat;if(s.branch==='b1')iQ1[i.name]=(iQ1[i.name]||0)+i.qty;else iQ2[i.name]=(iQ2[i.name]||0)+i.qty;});});
-  document.getElementById('repItemBody').innerHTML=Object.entries(iR).sort((a,b)=>b[1]-a[1]).map(([n,r])=>`<tr><td style="font-weight:600">${n}</td><td>${catBadge(iCat[n])}</td><td class="font-mono">${iQ1[n]||0}</td><td class="font-mono">${iQ2[n]||0}</td><td class="font-mono">${(iQ1[n]||0)+(iQ2[n]||0)}</td><td class="font-mono text-gold">${fmtMoney(r)}</td></tr>`).join('')||'<tr class="no-data-row"><td colspan="6">No sales</td></tr>';
+  const iR={},iQ1={},iQ2={},iQ3={},iCat={};
+  list.forEach(s=>{(s.items||[]).forEach(i=>{iR[i.name]=(iR[i.name]||0)+i.price*i.qty;iCat[i.name]=i.cat;if(s.branch==='b1')iQ1[i.name]=(iQ1[i.name]||0)+i.qty;else if(s.branch==='b2')iQ2[i.name]=(iQ2[i.name]||0)+i.qty;else iQ3[i.name]=(iQ3[i.name]||0)+i.qty;});});
+  document.getElementById('repItemBody').innerHTML=Object.entries(iR).sort((a,b)=>b[1]-a[1]).map(([n,r])=>`<tr><td style="font-weight:600">${n}</td><td>${catBadge(iCat[n])}</td><td class="font-mono">${iQ1[n]||0}</td><td class="font-mono">${iQ2[n]||0}</td><td class="font-mono">${iQ3[n]||0}</td><td class="font-mono">${(iQ1[n]||0)+(iQ2[n]||0)+(iQ3[n]||0)}</td><td class="font-mono text-gold">${fmtMoney(r)}</td></tr>`).join('')||'<tr class="no-data-row"><td colspan="7">No sales</td></tr>';
 
   // Stock snapshot
   document.getElementById('repStockBody').innerHTML=products.map(p=>{
-    const ok=(p.stock1||0)>(p.minStock||0)&&(p.stock2||0)>(p.minStock||0);
-    return `<tr><td style="font-weight:600">${p.name}</td><td>${catBadge(p.cat)}</td><td class="font-mono ${(p.stock1||0)<=(p.minStock||0)?'text-red':''}">${p.stock1||0}</td><td class="font-mono ${(p.stock2||0)<=(p.minStock||0)?'text-red':''}">${p.stock2||0}</td><td class="font-mono">${p.minStock||0}</td><td><span class="badge badge-${ok?'ok':'low'}">${ok?'OK':'LOW'}</span></td></tr>`;
+    const ok=(p.stock1||0)>(p.minStock||0)&&(p.stock2||0)>(p.minStock||0)&&(p.stock3||0)>(p.minStock||0);
+    return `<tr><td style="font-weight:600">${p.name}</td><td>${catBadge(p.cat)}</td><td class="font-mono ${(p.stock1||0)<=(p.minStock||0)?'text-red':''}">${p.stock1||0}</td><td class="font-mono ${(p.stock2||0)<=(p.minStock||0)?'text-red':''}">${p.stock2||0}</td><td class="font-mono ${(p.stock3||0)<=(p.minStock||0)?'text-red':''}">${p.stock3||0}</td><td class="font-mono">${p.minStock||0}</td><td><span class="badge badge-${ok?'ok':'low'}">${ok?'OK':'LOW'}</span></td></tr>`;
   }).join('');
   
   // Update headers
@@ -1889,9 +1917,11 @@ function renderAdminPanel(){
   const todaySales=sales.filter(s=>{const d=s.ts?.toDate?s.ts.toDate():new Date(s.ts||0);return d.toISOString().slice(0,10)===today;});
   const b1s=todaySales.filter(s=>s.branch==='b1');
   const b2s=todaySales.filter(s=>s.branch==='b2');
+  const b3s=todaySales.filter(s=>s.branch==='b3');
   document.getElementById('adminRevBody').innerHTML=[
     [config.b1name||'Branch 1','b1',b1s],
-    [config.b2name||'Branch 2','b2',b2s]
+    [config.b2name||'Branch 2','b2',b2s],
+    [config.b3name||'Branch 3','b3',b3s]
   ].map(([n,b,ss])=>`<tr><td><span class="badge badge-${b}">${n}</span></td><td class="font-mono">${ss.length}</td><td class="font-mono text-gold">${fmtMoney(ss.reduce((a,s)=>a+(s.total||0),0))}</td><td class="font-mono">${fmtMoney(ss.length?ss.reduce((a,s)=>a+(s.total||0),0)/ss.length:0)}</td></tr>`).join('');
 
   // Top 10 all time
@@ -1918,8 +1948,9 @@ function renderAdminPanel(){
 async function saveBranchNames(){
   const b1=document.getElementById('adm-b1name')?.value?.trim()||'Branch 1';
   const b2=document.getElementById('adm-b2name')?.value?.trim()||'Branch 2';
+  const b3=document.getElementById('adm-b3name')?.value?.trim()||'Branch 3';
   try{
-    await db.collection('nb_config').doc('settings').update({b1name:b1,b2name:b2});
+    await db.collection('nb_config').doc('settings').set({b1name:b1,b2name:b2,b3name:b3},{merge:true});
     toast('Branch names updated!','ok');
   }catch(e){toast('Error: '+e.message,'err');}
 }
@@ -1962,26 +1993,28 @@ function getStockReportData(){
   const date=document.getElementById('stockDate')?.value||todayStr();
   const b1n=config.b1name||'Branch 1';
   const b2n=config.b2name||'Branch 2';
+  const b3n=config.b3name||'Branch 3';
   const t1=products.reduce((a,p)=>a+(p.stock1||0),0);
   const t2=products.reduce((a,p)=>a+(p.stock2||0),0);
-  return {date,b1n,b2n,t1,t2};
+  const t3=products.reduce((a,p)=>a+(p.stock3||0),0);
+  return {date,b1n,b2n,b3n,t1,t2,t3};
 }
 
 function downloadStockCSV(){
-  const {date,b1n,b2n,t1,t2}=getStockReportData();
+  const {date,b1n,b2n,b3n,t1,t2,t3}=getStockReportData();
   const rows=[
     [`NB Cakes & Desserts — Stock Balance Report`],
     [`Date: ${date}`],
     [`Generated: ${new Date().toLocaleString('en-IN')}`],
     [],
-    ['Item','Category',`Stock ${b1n}`,`Stock ${b2n}`,'Total Stock','Alert At','Status']
+    ['Item','Category',`Stock ${b1n}`,`Stock ${b2n}`,`Stock ${b3n}`,'Total Stock','Alert At','Status']
   ];
   products.forEach(p=>{
-    const ok=(p.stock1||0)>(p.minStock||0)&&(p.stock2||0)>(p.minStock||0);
-    rows.push([p.name,catLabel(p.cat),p.stock1||0,p.stock2||0,(p.stock1||0)+(p.stock2||0),p.minStock||0,ok?'OK':'LOW']);
+    const ok=(p.stock1||0)>(p.minStock||0)&&(p.stock2||0)>(p.minStock||0)&&(p.stock3||0)>(p.minStock||0);
+    rows.push([p.name,catLabel(p.cat),p.stock1||0,p.stock2||0,p.stock3||0,(p.stock1||0)+(p.stock2||0)+(p.stock3||0),p.minStock||0,ok?'OK':'LOW']);
   });
   rows.push([]);
-  rows.push(['TOTAL','',t1,t2,t1+t2,'','']);
+  rows.push(['TOTAL','',t1,t2,t3,t1+t2+t3,'','']);
   const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
@@ -1991,7 +2024,7 @@ function downloadStockCSV(){
 }
 
 function downloadStockPDF(){
-  const {date,b1n,b2n,t1,t2}=getStockReportData();
+  const {date,b1n,b2n,b3n,t1,t2,t3}=getStockReportData();
   const w=window.open('','_blank');
   w.document.write(`<!DOCTYPE html><html><head><title>Stock Report ${date}</title>
   <style>body{font-family:Arial,sans-serif;padding:20px;font-size:12px;color:#111}
@@ -2004,10 +2037,10 @@ function downloadStockPDF(){
   @media print{@page{margin:10mm}}</style></head><body>
   <h2>NB Cakes &amp; Desserts — Stock Balance Report</h2>
   <p>Date: ${date} &nbsp;·&nbsp; Generated: ${new Date().toLocaleString('en-IN')}</p>
-  <table><thead><tr><th>Item</th><th>Category</th><th>${b1n}</th><th>${b2n}</th><th>Total</th><th>Alert</th><th>Status</th></tr></thead>
+  <table><thead><tr><th>Item</th><th>Category</th><th>${b1n}</th><th>${b2n}</th><th>${b3n}</th><th>Total</th><th>Alert</th><th>Status</th></tr></thead>
   <tbody>
-  ${products.map(p=>{const ok=(p.stock1||0)>(p.minStock||0)&&(p.stock2||0)>(p.minStock||0);return`<tr><td>${p.name}</td><td>${catLabel(p.cat)}</td><td>${p.stock1||0}</td><td>${p.stock2||0}</td><td>${(p.stock1||0)+(p.stock2||0)}</td><td>${p.minStock||0}</td><td class="${ok?'ok':'low'}">${ok?'OK':'LOW'}</td></tr>`;}).join('')}
-  <tr class="total-row"><td>TOTAL</td><td></td><td>${t1}</td><td>${t2}</td><td>${t1+t2}</td><td></td><td></td></tr>
+  ${products.map(p=>{const ok=(p.stock1||0)>(p.minStock||0)&&(p.stock2||0)>(p.minStock||0)&&(p.stock3||0)>(p.minStock||0);return`<tr><td>${p.name}</td><td>${catLabel(p.cat)}</td><td>${p.stock1||0}</td><td>${p.stock2||0}</td><td>${p.stock3||0}</td><td>${(p.stock1||0)+(p.stock2||0)+(p.stock3||0)}</td><td>${p.minStock||0}</td><td class="${ok?'ok':'low'}">${ok?'OK':'LOW'}</td></tr>`;}).join('')}
+  <tr class="total-row"><td>TOTAL</td><td></td><td>${t1}</td><td>${t2}</td><td>${t3}</td><td>${t1+t2+t3}</td><td></td><td></td></tr>
   </tbody></table>
   <script>window.onload=function(){window.print();}<\/script></body></html>`);
   w.document.close();
@@ -2020,7 +2053,7 @@ async function resetAllStock(){
   if(!confirmed)return;
   try{
     const batch=db.batch();
-    products.forEach(p=>{batch.update(db.collection('nb_products').doc(p.id),{stock1:0,stock2:0});});
+    products.forEach(p=>{batch.update(db.collection('nb_products').doc(p.id),{stock1:0,stock2:0,stock3:0});});
     await batch.commit();
     toast(`All stock reset — ${products.length} items set to zero`,'ok');
   }catch(e){toast('Error: '+e.message,'err');}
