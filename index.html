@@ -800,6 +800,7 @@ hr.divider{border:none;border-top:1.5px solid var(--border);margin:16px 0}
 <div id="toastZone"></div>
 
 <script>
+// ═══════════════ FIREBASE CONFIG ═══════════════
 const firebaseConfig = {
   apiKey: "AIzaSyD5D6FkhghmfUloFjCV8vsTmuZNk85aWpQ",
   authDomain: "nb-database-9adcb.firebaseapp.com",
@@ -1220,6 +1221,7 @@ function setParcel(val){
   const mpr=document.getElementById('mParcelRow');if(mpr)mpr.style.display=val>0?'flex':'none';
   updateCartTotals();
 }
+function cartItemsHTML(){
   if(cart.length===0)return '<div class="cart-empty"><span>🍰</span>Add items to cart</div>';
   return cart.map((c,i)=>`
     <div class="cart-item">
