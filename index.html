@@ -914,15 +914,33 @@ function updateDots(){
     if(el) el.classList.toggle('filled',i<pinInput.length);
   }
 }
-function checkPin(){
-  const correct=config.pins[pinRole];
-  if(pinInput===correct){loginAs(pinRole);}
-  else{
-    const pad=document.getElementById('pinPad');
-    pad.classList.add('shake');
-    setTimeout(()=>pad.classList.remove('shake'),400);
-    pinInput='';updateDots();
-    toast('Wrong PIN — try again','err');
+async function checkPin(){
+  try{
+    // Always fetch fresh from Firestore — never use cached config.pins
+    const snap=await db.collection('nb_config').doc('settings').get();
+    const freshPins=snap.exists?(snap.data().pins||{}):{};
+    const correct=freshPins[pinRole];
+    if(pinInput===correct){
+      config.pins=freshPins; // update local cache too
+      loginAs(pinRole);
+    }else{
+      const pad=document.getElementById('pinPad');
+      pad.classList.add('shake');
+      setTimeout(()=>pad.classList.remove('shake'),400);
+      pinInput='';updateDots();
+      toast('Wrong PIN — try again','err');
+    }
+  }catch(e){
+    // Fallback to local if offline
+    const correct=config.pins[pinRole];
+    if(pinInput===correct){loginAs(pinRole);}
+    else{
+      const pad=document.getElementById('pinPad');
+      pad.classList.add('shake');
+      setTimeout(()=>pad.classList.remove('shake'),400);
+      pinInput='';updateDots();
+      toast('Wrong PIN — try again','err');
+    }
   }
 }
 
@@ -961,24 +979,16 @@ function switchTab(tab){
   if(el)el.style.display='block';
   const nav=document.querySelector(`.nav-tab[data-tab="${tab}"]`);
   if(nav)nav.classList.add('active');
-  // Refresh tab
-  if(tab==='dashboard')renderDashboard();
-  if(tab==='billing')renderBillingTab();
-  if(tab==='stock')renderStockEntry();
-  if(tab==='transfer')renderTransferTab();
-  if(tab==='inventory')renderInventory();
-  if(tab==='history')renderHistory();
-  if(tab==='admin')renderAdminPanel();
+  // Always render fresh on tab switch
+  refreshCurrentTab();
 }
 
 // ═══════════════ FIRESTORE SEED & LISTENERS ═══════════════
 async function startListeners(){
-  // Config
   const configRef=db.collection('nb_config').doc('settings');
   const snap=await configRef.get();
   if(!snap.exists){
     await configRef.set({pins:{admin:'1234',b1:'1111',b2:'2222',b3:'3333'},billCounter:0,gstRate:5,b1name:'Branch 1',b2name:'Branch 2',b3name:'Branch 3'});
-    // Seed products
     const batch=db.batch();
     DEF_PRODUCTS.forEach(p=>{
       const ref=db.collection('nb_products').doc();
@@ -988,7 +998,8 @@ async function startListeners(){
     toast('First-run setup complete!','ok');
   }
 
-  const u1=configRef.onSnapshot(d=>{
+  // ── Config listener ──
+  const u1=configRef.onSnapshot({includeMetadataChanges:false},d=>{
     if(d.exists){
       const data=d.data();
       config={...config,...data};
@@ -1000,48 +1011,67 @@ async function startListeners(){
       const mGLbl=document.getElementById('mGstLbl');
       if(mGLbl)mGLbl.textContent=`GST (${config.gstRate??0}%)`;
       updateCartTotals();
-      renderCartItems();
     }
-  });
+  },err=>{setSyncBadge(false);});
 
+  // ── Products listener — fires on ANY branch stock change ──
   const u2=db.collection('nb_products').orderBy('name').onSnapshot(snap=>{
+    setSyncBadge(true);
     products=snap.docs.map(d=>({id:d.id,...d.data()}));
-    if(activeTab==='billing')renderMenuGrid();
-    if(activeTab==='inventory')renderInventory();
-    if(activeTab==='stock')renderStockEntry();
-    if(activeTab==='transfer')renderTransferTab();
-    if(activeTab==='dashboard')renderDashboard();
+    // Always refresh whatever tab is active
+    refreshCurrentTab();
     const qs=document.getElementById('qs-prods');
     if(qs)qs.textContent=products.length;
-  });
+  },err=>{setSyncBadge(false);});
 
+  // ── Sales listener — all branches see live updates ──
   const u3=db.collection('nb_sales').orderBy('ts','desc').limit(500).onSnapshot(snap=>{
+    setSyncBadge(true);
     sales=snap.docs.map(d=>({id:d.id,...d.data()}));
-    if(activeTab==='dashboard')renderDashboard();
-    if(activeTab==='history')renderHistory();
-    if(activeTab==='admin')renderAdminPanel();
+    // Always re-render active tab
+    refreshCurrentTab();
+    // Always update quick stats regardless of tab
     const qs=document.getElementById('qs-sales');
     if(qs)qs.textContent=sales.length;
     const qr=document.getElementById('qs-rev');
     if(qr)qr.textContent=fmtMoney(sales.reduce((a,s)=>a+(s.total||0),0));
     const qb=document.getElementById('qs-bill');
     if(qb)qb.textContent=padBill(config.billCounter||0);
-  });
+  },err=>{setSyncBadge(false);});
 
+  // ── Stock log listener ──
   const u4=db.collection('nb_stock_log').orderBy('ts','desc').limit(300).onSnapshot(snap=>{
     stockLogs=snap.docs.map(d=>({id:d.id,...d.data()}));
-    if(activeTab==='stock')renderStockLog();
-    updateStockLogFilter();
-  });
+    if(activeTab==='stock'){renderStockLog();updateStockLogFilter();}
+  },err=>{setSyncBadge(false);});
 
+  // ── Transfers listener ──
   const u5=db.collection('nb_transfers').orderBy('ts','desc').limit(200).onSnapshot(snap=>{
     transfers=snap.docs.map(d=>({id:d.id,...d.data()}));
     if(activeTab==='transfer')renderTransferLog();
-  });
+  },err=>{setSyncBadge(false);});
 
   unsubs=[u1,u2,u3,u4,u5];
-  document.getElementById('syncBadge').className='hdr-sync live';
-  document.getElementById('syncBadge').textContent='● LIVE';
+  setSyncBadge(true);
+}
+
+// ── Sync badge helper ──
+function setSyncBadge(online){
+  const b=document.getElementById('syncBadge');
+  if(!b)return;
+  if(online){b.className='hdr-sync live';b.textContent='● LIVE';}
+  else{b.className='hdr-sync off';b.textContent='⚠ OFFLINE';}
+}
+
+// ── Refresh whatever tab is currently open ──
+function refreshCurrentTab(){
+  if(activeTab==='dashboard')renderDashboard();
+  else if(activeTab==='billing')renderBillingTab();
+  else if(activeTab==='inventory')renderInventory();
+  else if(activeTab==='stock')renderStockEntry();
+  else if(activeTab==='transfer')renderTransferTab();
+  else if(activeTab==='history')renderHistory();
+  else if(activeTab==='admin')renderAdminPanel();
 }
 
 // ═══════════════ BRANCH NAMES ═══════════════
@@ -1976,16 +2006,19 @@ async function updateGST(){
 }
 
 async function updatePIN(role){
-  const val=document.getElementById(`pin-${role}`)?.value;
+  const val=document.getElementById(`pin-${role}`)?.value?.trim();
   if(!val||val.length!==4||!/^\d{4}$/.test(val)){toast('PIN must be exactly 4 digits','warn');return;}
   try{
-    // Read current pins first, then merge
+    // Read fresh pins first
     const snap=await db.collection('nb_config').doc('settings').get();
     const currentPins=snap.exists?(snap.data().pins||{}):{};
     const newPins={...currentPins,[role]:val};
+    // Save full pins object
     await db.collection('nb_config').doc('settings').set({pins:newPins},{merge:true});
+    // Immediately update local cache
     config.pins=newPins;
-    toast(`${role==='admin'?'Admin':role==='b1'?(config.b1name||'Branch 1'):(config.b2name||'Branch 2')} PIN updated ✓`,'ok');
+    const roleName=role==='admin'?'Admin':role==='b1'?(config.b1name||'Branch 1'):role==='b2'?(config.b2name||'Branch 2'):(config.b3name||'Branch 3');
+    toast(`${roleName} PIN changed successfully ✓`,'ok');
     document.getElementById(`pin-${role}`).value='';
   }catch(e){toast('Error saving PIN: '+e.message,'err');}
 }
