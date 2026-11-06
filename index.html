@@ -539,6 +539,13 @@ hr.divider{border:none;border-top:1.5px solid var(--border);margin:16px 0}
               </div>
             </div>
             <div class="cart-row" id="parcelRow" style="display:none"><span>Parcel Charge</span><span id="cartParcel">₹0.00</span></div>
+            <div class="cart-row" style="align-items:center">
+              <span>Payment</span>
+              <div style="display:flex;gap:6px">
+                <button id="payCash" class="btn btn-sm btn-gold" style="font-size:.75rem" onclick="setPayMode('Cash')">💵 Cash</button>
+                <button id="payGpay" class="btn btn-sm btn-outline" style="font-size:.75rem" onclick="setPayMode('GPay')">📱 GPay</button>
+              </div>
+            </div>
             <div class="cart-row total-row"><span>TOTAL</span><span id="cartTotal">₹0.00</span></div>
             <button class="btn btn-gold" style="width:100%;justify-content:center;margin-top:8px;padding:12px" onclick="generateInvoice()">🧾 Generate Invoice</button>
           </div>
@@ -647,7 +654,7 @@ hr.divider{border:none;border-top:1.5px solid var(--border);margin:16px 0}
         <button class="btn btn-green" onclick="exportCSV()">⬇ Export CSV</button>
       </div>
       <div class="tbl-wrap">
-        <table><thead><tr><th>Invoice #</th><th>Date & Time</th><th>Branch</th><th>Customer</th><th>Items</th><th>GST%</th><th>Total</th><th>Status</th><th>Invoice</th></tr></thead>
+        <table><thead><tr><th>Invoice #</th><th>Date & Time</th><th>Branch</th><th>Customer</th><th>Items</th><th>GST%</th><th>Total</th><th>Payment</th><th>Status</th><th>Invoice</th></tr></thead>
         <tbody id="historyBody"></tbody></table>
       </div>
     </div>
@@ -735,7 +742,7 @@ hr.divider{border:none;border-top:1.5px solid var(--border);margin:16px 0}
           <h3>🏷 Product Categories</h3>
           <div id="catListAdmin" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px"></div>
           <div style="display:flex;gap:8px;align-items:center"><input type="text" id="newCatName" placeholder="New category name" maxlength="40" style="flex:1"/><button class="btn btn-gold" onclick="addCategory()">＋ Add</button></div>
-          <div class="info-box" style="margin-top:12px;font-size:.8rem">Built-in categories can't be removed. A custom category can only be deleted when no product uses it.</div>
+          <div class="info-box" style="margin-top:12px;font-size:.8rem">Tap ✏ to rename any category (e.g. fix a spelling) — products keep their category. Built-in ones can't be deleted; a custom one can only be deleted when no product uses it.</div>
         </div>
         <div class="settings-card">
           <h3>📊 Quick Stats</h3>
@@ -782,6 +789,13 @@ hr.divider{border:none;border-top:1.5px solid var(--border);margin:16px 0}
         </div>
       </div>
       <div class="cart-row" id="mParcelRow" style="display:none"><span>Parcel Charge</span><span id="mCartParcel">₹0.00</span></div>
+      <div class="cart-row" style="align-items:center">
+        <span>Payment</span>
+        <div style="display:flex;gap:6px">
+          <button id="mPayCash" class="btn btn-sm btn-gold" style="font-size:.75rem" onclick="setPayMode('Cash')">💵 Cash</button>
+          <button id="mPayGpay" class="btn btn-sm btn-outline" style="font-size:.75rem" onclick="setPayMode('GPay')">📱 GPay</button>
+        </div>
+      </div>
       <div class="cart-row total-row"><span>TOTAL</span><span id="mCartTotal">₹0.00</span></div>
       <button class="btn btn-gold" style="width:100%;justify-content:center;margin-top:8px;padding:12px" onclick="generateInvoice()">🧾 Generate Invoice</button>
     </div>
@@ -860,6 +874,7 @@ let products = [], sales = [], stockLogs = [], transfers = [];
 let config = {pins:{admin:'1234',b1:'1111',b2:'2222',b3:'3333',b4:'4444'}, billCounter:0, gstRate:5, b1name:'Branch 1', b2name:'Branch 2', b3name:'Branch 3', b4name:'Branch 4'};
 let cart = [];
 let parcelCharge = 0;
+let payMode = 'Cash'; // 'Cash' or 'GPay' — chosen on the billing screen
 let activeTab = 'dashboard';
 let activeCat = 'all';
 let pinInput = '';
@@ -888,6 +903,7 @@ function stockKeyOf(b){return {b1:'stock1',b2:'stock2',b3:'stock3',b4:'stock4'}[
 const DEFAULT_PINS={b4:'4444'};
 // Built-in product categories (admin-added ones are stored in nb_config/settings.categories)
 const BUILTIN_CATS=[{id:'brownie',label:"Brownie's"},{id:'cake',label:'Cakes'},{id:'tresleche',label:'Tres Leches'},{id:'bun',label:'Bun'},{id:'cheesecake',label:'Cheese Cake'},{id:'berliner',label:'Berliners'},{id:'drinks',label:"Dink's"},{id:'special',label:'Special'}];
+function catDisplay(id,def){const o=(config.catNames||{})[id];return o||def||customCatLabel(id);}
 function customCatLabel(c){const f=(config.categories||[]).find(x=>x.id===c);return f?f.label:c;}
 // Date + time WITH seconds (used for bill timestamps)
 function fmtDateTimeSec(ts){if(!ts)return'—';const d=ts.toDate?ts.toDate():new Date(ts);return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})+' '+d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true});}
@@ -904,7 +920,7 @@ function fmtInvoiceDateTime(sale){
 function catBadge(cat){
   const map={brownie:'badge-brownie',cake:'badge-cake',tresleche:'badge-tresleche',bun:'badge-bun',cheesecake:'badge-cheesecake',berliner:'badge-berliner',drinks:'badge-drinks',special:'badge-special'};
   const names={brownie:"Brownie's",cake:"Cakes",tresleche:"Tres Leches",bun:"Bun",cheesecake:"Cheese Cake",berliner:"Berliners",drinks:"Dink's",special:"Special"};
-  return `<span class="badge ${map[cat]||'badge-custom'}">${names[cat]||customCatLabel(cat)}</span>`;
+  return `<span class="badge ${map[cat]||'badge-custom'}">${catDisplay(cat,names[cat])}</span>`;
 }
 
 function toast(msg,type='ok'){
@@ -954,6 +970,7 @@ async function checkPin(){
     // Always fetch fresh from Firestore — never use cached config.pins
     const snap=await db.collection('nb_config').doc('settings').get();
     const freshPins=snap.exists?(snap.data().pins||{}):{};
+    if(snap.exists){config={...config,...snap.data()};}
     const correct=freshPins[pinRole]??DEFAULT_PINS[pinRole];
     if(pinInput===correct){
       config.pins=freshPins; // update local cache too
@@ -1046,6 +1063,7 @@ async function startListeners(){
       const mGLbl=document.getElementById('mGstLbl');
       if(mGLbl)mGLbl.textContent=`GST (${config.gstRate??0}%)`;
       updateCartTotals();
+      if(['billing','dashboard','inventory','history'].includes(activeTab))refreshCurrentTab();
     }
   },err=>{setSyncBadge(false);});
 
@@ -1116,6 +1134,7 @@ function updateBranchNameLabels(){
   const b3=config.b3name||'Branch 3';
   const b4=config.b4name||'Branch 4';
   // Header
+  const hr=document.getElementById('hdrRole');if(hr&&currentRole)hr.textContent=currentRole==='admin'?'Admin':getBranchName(currentRole);
   document.getElementById('hdrBranch').textContent=currentRole==='admin'?'All Branches':getBranchName(currentRole);
   // Role buttons
   const rb1=document.getElementById('roleB1Name');if(rb1)rb1.textContent=b1;
@@ -1166,10 +1185,10 @@ function updateBranchNameLabels(){
   if(rbf&&rbf.options.length>=4){rbf.options[1].text=b1;rbf.options[2].text=b2;rbf.options[3].text=b3;}
   if(rbf&&rbf.options.length>=5){rbf.options[4].text=b4;}
   // Admin inputs
-  const ab1=document.getElementById('adm-b1name');if(ab1)ab1.value=b1;
-  const ab2=document.getElementById('adm-b2name');if(ab2)ab2.value=b2;
-  const ab3=document.getElementById('adm-b3name');if(ab3)ab3.value=b3;
-  const ab4=document.getElementById('adm-b4name');if(ab4)ab4.value=b4;
+  const ab1=document.getElementById('adm-b1name');if(ab1&&document.activeElement!==ab1)ab1.value=b1;
+  const ab2=document.getElementById('adm-b2name');if(ab2&&document.activeElement!==ab2)ab2.value=b2;
+  const ab3=document.getElementById('adm-b3name');if(ab3&&document.activeElement!==ab3)ab3.value=b3;
+  const ab4=document.getElementById('adm-b4name');if(ab4&&document.activeElement!==ab4)ab4.value=b4;
   // Product modal labels
   const pm1=document.getElementById('pm-s1lbl');if(pm1)pm1.textContent=`Opening Stock ${b1}`;
   const pm2=document.getElementById('pm-s2lbl');if(pm2)pm2.textContent=`Opening Stock ${b2}`;
@@ -1246,7 +1265,7 @@ function buildCatFilters(){
   cf.innerHTML=cats.map(c=>`<button class="cat-btn${activeCat===c.id?' active':''}" onclick="setCat('${c.id}')">${c.label}</button>`).join('');
 }
 
-function catLabel(c){const names={brownie:"Brownie's",cake:"Cakes",tresleche:"Tres Leches",bun:"Bun",cheesecake:"Cheese Cake",berliner:"Berliners",drinks:"Dink's",special:"Special"};return names[c]||customCatLabel(c);}
+function catLabel(c){const names={brownie:"Brownie's",cake:"Cakes",tresleche:"Tres Leches",bun:"Bun",cheesecake:"Cheese Cake",berliner:"Berliners",drinks:"Dink's",special:"Special"};return catDisplay(c,names[c]);}
 
 function setCat(c){activeCat=c;buildCatFilters();renderMenuGrid();}
 
@@ -1281,6 +1300,15 @@ function addToCart(id){
   if(existing)existing.qty++;
   else cart.push({id,name:p.name,cat:p.cat,price:p.price,qty:1});
   renderCartItems();
+}
+
+function setPayMode(mode){
+  payMode=(mode==='GPay')?'GPay':'Cash';
+  [['payCash','Cash'],['payGpay','GPay'],['mPayCash','Cash'],['mPayGpay','GPay']].forEach(([id,m])=>{
+    const el=document.getElementById(id);if(!el)return;
+    el.className='btn btn-sm '+(m===payMode?'btn-gold':'btn-outline');
+    el.style.fontSize='.75rem';
+  });
 }
 
 function setParcel(val){
@@ -1403,7 +1431,7 @@ async function generateInvoice(){
       billNo,ts:firebase.firestore.FieldValue.serverTimestamp(),
       branch,customer:custName,phone:custPhone,
       items:cart.map(c=>({id:c.id,name:c.name,cat:c.cat,price:c.price,qty:c.qty})),
-      sub,gst,gstRate,parcel:parcelCharge,total,status:'PAID',
+      sub,gst,gstRate,parcel:parcelCharge,total,status:'PAID',payMode,
       billAt:billNow.toISOString(),
       billTime:billNow.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true})
     });
@@ -1411,9 +1439,10 @@ async function generateInvoice(){
     batch.update(db.collection('nb_config').doc('settings'),{billCounter:billNo});
     await batch.commit();
     toast('Invoice saved!','ok');
-    showInvoiceModal({billNo,branch,customer:custName,phone:custPhone,items:cart,sub,gst,gstRate,parcel:parcelCharge,total,status:'PAID',billAt:billNow.toISOString(),ts:{toDate:()=>billNow}});
+    showInvoiceModal({billNo,branch,customer:custName,phone:custPhone,items:cart,sub,gst,gstRate,parcel:parcelCharge,total,status:'PAID',payMode,billAt:billNow.toISOString(),ts:{toDate:()=>billNow}});
     clearCart();
     parcelCharge=0;setParcel(0);
+    setPayMode('Cash'); // back to default for the next bill
     const cn=document.getElementById('custName');if(cn)cn.value='';
     const cp=document.getElementById('custPhone');if(cp)cp.value='';
     const cnm=document.getElementById('custNameM');if(cnm)cnm.value='';
@@ -1441,7 +1470,7 @@ function showInvoiceModal(sale){
         <div style="text-align:right">
           <div style="font-family:'Space Mono',monospace;font-size:1.1rem;font-weight:700;color:#3d1f0a">${padBill(sale.billNo)}</div>
           <div class="inv-meta">${dateStr}</div>
-          <span class="paid-stamp">PAID ✓</span>
+          <span class="paid-stamp">PAID ✓</span>${sale.payMode?`<div class="inv-meta" style="margin-top:4px">Payment: <strong>${sale.payMode}</strong></div>`:''}
         </div>
       </div>
       ${sale.customer?`<div style="margin-bottom:12px;font-size:.85rem;color:#444"><strong>Customer:</strong> ${sale.customer}${sale.phone?' · '+sale.phone:''}</div>`:''}
@@ -1505,7 +1534,7 @@ function printInvoice(sale){
   </style></head><body>
   <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:16px;padding-bottom:14px;border-bottom:2px solid #e8e0d0">
     <div><div class="logo">NB <span>Cakes &amp; Desserts</span></div><div style="font-size:12px;color:#666;margin-top:4px">${branchName}</div></div>
-    <div style="text-align:right"><div class="mono" style="font-size:1rem;font-weight:700;color:#3d1f0a">${padBill(sale.billNo)}</div><div style="font-size:12px;color:#666">${dateStr}</div><span class="paid">PAID ✓</span></div>
+    <div style="text-align:right"><div class="mono" style="font-size:1rem;font-weight:700;color:#3d1f0a">${padBill(sale.billNo)}</div><div style="font-size:12px;color:#666">${dateStr}</div><span class="paid">PAID ✓</span>${sale.payMode?`<div style="font-size:12px;color:#666;margin-top:4px">Payment: <strong>${sale.payMode}</strong></div>`:''}</div>
   </div>
   ${sale.customer?`<div style="margin-bottom:12px;font-size:13px;color:#444"><strong>Customer:</strong> ${sale.customer}${sale.phone?' · '+sale.phone:''}</div>`:''}
   <table><thead><tr><th>#</th><th>Item</th><th>Qty</th><th>Rate</th><th>Amount</th></tr></thead><tbody>
@@ -1869,7 +1898,7 @@ function renderHistory(){
   let list=sales;
   if(branch)list=list.filter(s=>s.branch===branch);
   if(date)list=list.filter(s=>{const d=s.ts?.toDate?s.ts.toDate():new Date(s.ts||0);return d.toISOString().slice(0,10)===date;});
-  if(list.length===0){body.innerHTML='<tr class="no-data-row"><td colspan="9">No sales found</td></tr>';return;}
+  if(list.length===0){body.innerHTML='<tr class="no-data-row"><td colspan="10">No sales found</td></tr>';return;}
   body.innerHTML=list.map(s=>`<tr>
     <td class="font-mono">${padBill(s.billNo)}</td>
     <td style="font-size:.8rem">${fmtDateTimeSec(s.ts||s.billAt)}</td>
@@ -1878,6 +1907,7 @@ function renderHistory(){
     <td style="font-size:.8rem">${(s.items||[]).map(i=>`${i.name} ×${i.qty}`).join(', ')}</td>
     <td class="font-mono">${s.gstRate}%</td>
     <td class="font-mono text-gold">₹${(s.total||0).toFixed(2)}</td>
+    <td style="font-size:.8rem">${s.payMode||'—'}</td>
     <td><span class="badge badge-paid">${s.status}</span></td>
     <td>
       <button class="btn btn-sm btn-outline" onclick="viewSaleInvoice('${s.id}')">👁 View</button>
@@ -1927,9 +1957,9 @@ function exportCSV(){
   let list=sales;
   if(branch)list=list.filter(s=>s.branch===branch);
   if(date)list=list.filter(s=>{const d=s.ts?.toDate?s.ts.toDate():new Date(s.ts||0);return d.toISOString().slice(0,10)===date;});
-  const rows=[['Invoice#','DateTime','Branch','Customer','Phone','Items','Subtotal','GST%','GST','Total','Status']];
+  const rows=[['Invoice#','DateTime','Branch','Customer','Phone','Items','Subtotal','GST%','GST','Total','Status','Payment']];
   list.forEach(s=>{
-    rows.push([padBill(s.billNo),fmtDateTimeSec(s.ts||s.billAt),getBranchName(s.branch),s.customer||'',s.phone||'',(s.items||[]).map(i=>`${i.name}x${i.qty}`).join(';'),s.sub?.toFixed(2),s.gstRate,s.gst?.toFixed(2),s.total?.toFixed(2),s.status]);
+    rows.push([padBill(s.billNo),fmtDateTimeSec(s.ts||s.billAt),getBranchName(s.branch),s.customer||'',s.phone||'',(s.items||[]).map(i=>`${i.name}x${i.qty}`).join(';'),s.sub?.toFixed(2),s.gstRate,s.gst?.toFixed(2),s.total?.toFixed(2),s.status,s.payMode||'']);
   });
   const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a=document.createElement('a');
@@ -1960,6 +1990,11 @@ function generateReport(){
     ['Revenue',fmtMoney(sumOf(b1s,'total')),fmtMoney(sumOf(b2s,'total')),fmtMoney(sumOf(b3s,'total')),fmtMoney(sumOf(b4s,'total')),fmtMoney(sumOf(list,'total'))],
     ['Avg Bill',fmtMoney(avgOf(b1s)),fmtMoney(avgOf(b2s)),fmtMoney(avgOf(b3s)),fmtMoney(avgOf(b4s)),fmtMoney(avgOf(list))]
   ];
+  // Payment-type totals (revenue collected by Cash / GPay) per branch
+  const payRow=(label,fn)=>[label,...[b1s,b2s,b3s,b4s,list].map(a=>fmtMoney(sumOf(a.filter(fn),'total')))];
+  metrics.push(payRow('💵 Cash',s=>s.payMode==='Cash'));
+  metrics.push(payRow('📱 GPay',s=>s.payMode==='GPay'));
+  if(list.some(s=>!s.payMode))metrics.push(payRow('Payment not recorded (older bills)',s=>!s.payMode));
   document.getElementById('repSummaryBody').innerHTML=metrics.map(r=>`<tr><td style="font-weight:600">${r[0]}</td><td class="font-mono">${r[1]}</td><td class="font-mono">${r[2]}</td><td class="font-mono">${r[3]}</td><td class="font-mono">${r[4]}</td><td class="font-mono text-gold">${r[5]}</td></tr>`).join('');
 
   // Category
@@ -2005,6 +2040,10 @@ function exportExcel(){
     ['Subtotal',sumOf(b1s,'sub'),sumOf(b2s,'sub'),sumOf(b3s,'sub'),sumOf(b4s,'sub'),sumOf(list,'sub')],
     ['GST',sumOf(b1s,'gst'),sumOf(b2s,'gst'),sumOf(b3s,'gst'),sumOf(b4s,'gst'),sumOf(list,'gst')],
     ['Revenue',sumOf(b1s,'total'),sumOf(b2s,'total'),sumOf(b3s,'total'),sumOf(b4s,'total'),sumOf(list,'total')]];
+  const payRowX=(label,fn)=>[label,...[b1s,b2s,b3s,b4s,list].map(a=>sumOf(a.filter(fn),'total'))];
+  summaryData.push(payRowX('Cash',s=>s.payMode==='Cash'));
+  summaryData.push(payRowX('GPay',s=>s.payMode==='GPay'));
+  if(list.some(s=>!s.payMode))summaryData.push(payRowX('Payment not recorded (older bills)',s=>!s.payMode));
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(summaryData),'Sales Summary');
 
   const iR={},iQ1={},iQ2={},iQ3={},iQ4={},iCat={},iPrice={};
@@ -2015,7 +2054,7 @@ function exportExcel(){
   const stockData=[['Item','Category',`Stock ${b1n}`,`Stock ${b2n}`,`Stock ${b3n}`,`Stock ${b4n}`,'Alert At','Status'],...products.map(p=>[p.name,catLabel(p.cat),p.stock1||0,p.stock2||0,p.stock3||0,p.stock4||0,p.minStock||0,((p.stock1||0)>(p.minStock||0)&&(p.stock2||0)>(p.minStock||0)&&(p.stock3||0)>(p.minStock||0)&&(p.stock4||0)>(p.minStock||0))?'OK':'LOW'])];
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(stockData),'Stock Snapshot');
 
-  const billData=[['Invoice#','DateTime','Branch','Customer','Phone','Items','Subtotal','GST%','Total'],...sales.map(s=>[padBill(s.billNo),fmtDateTimeSec(s.ts||s.billAt),getBranchName(s.branch),s.customer||'',s.phone||'',(s.items||[]).map(i=>`${i.name}x${i.qty}`).join('; '),s.sub?.toFixed(2),s.gstRate,s.total?.toFixed(2)])];
+  const billData=[['Invoice#','DateTime','Branch','Customer','Phone','Items','Subtotal','GST%','Total','Payment'],...sales.map(s=>[padBill(s.billNo),fmtDateTimeSec(s.ts||s.billAt),getBranchName(s.branch),s.customer||'',s.phone||'',(s.items||[]).map(i=>`${i.name}x${i.qty}`).join('; '),s.sub?.toFixed(2),s.gstRate,s.total?.toFixed(2),s.payMode||''])];
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(billData),'All Bills');
 
   const tfData=[['DateTime','Item','Qty','From','To','Note'],...transfers.map(t=>[fmtDateTime(t.ts),t.productName,t.qty,getBranchName(t.from),getBranchName(t.to),t.note||''])];
@@ -2065,8 +2104,8 @@ function renderAdminPanel(){
   const gEl=document.getElementById('gstDisplay');if(gEl)gEl.textContent=(config.gstRate??0)+'%';
 
   // Branch name inputs
-  const ab1=document.getElementById('adm-b1name');if(ab1)ab1.value=config.b1name||'Branch 1';
-  const ab2=document.getElementById('adm-b2name');if(ab2)ab2.value=config.b2name||'Branch 2';
+  const ab1=document.getElementById('adm-b1name');if(ab1&&document.activeElement!==ab1)ab1.value=config.b1name||'Branch 1';
+  const ab2=document.getElementById('adm-b2name');if(ab2&&document.activeElement!==ab2)ab2.value=config.b2name||'Branch 2';
 
   // Quick stats
   const qp=document.getElementById('qs-prods');if(qp)qp.textContent=products.length;
@@ -2126,6 +2165,7 @@ async function updatePIN(role){
 function refreshCategoryOptions(){
   const sel=document.getElementById('pm-cat');if(!sel)return;
   const cur=sel.value;
+  sel.querySelectorAll('option:not([data-custom])').forEach(o=>{if(!o.dataset.def)o.dataset.def=o.textContent;o.textContent=(config.catNames||{})[o.value]||o.dataset.def;});
   [...sel.querySelectorAll('option[data-custom]')].forEach(o=>o.remove());
   (config.categories||[]).forEach(c=>{
     const o=document.createElement('option');
@@ -2138,10 +2178,36 @@ function refreshCategoryOptions(){
 function renderCategoryList(){
   const el=document.getElementById('catListAdmin');if(!el)return;
   const used={};products.forEach(p=>{used[p.cat]=(used[p.cat]||0)+1;});
-  const row=(badge,right)=>`<div style="display:flex;align-items:center;gap:8px;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)"><div>${badge} <span style="font-size:.75rem;color:var(--muted)">${right}</span></div>`;
-  const builtin=BUILTIN_CATS.map(c=>row(catBadge(c.id),`built-in · ${used[c.id]||0} items`)+'</div>').join('');
-  const custom=(config.categories||[]).map(c=>row(catBadge(c.id),`${used[c.id]||0} items`)+`<button class="btn btn-sm btn-danger" onclick="deleteCategory('${c.id}')">🗑</button></div>`).join('');
+  const row=(id,note,btns)=>`<div style="display:flex;align-items:center;gap:8px;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)"><div>${catBadge(id)} <span style="font-size:.75rem;color:var(--muted)">${note}</span></div><div style="display:flex;gap:6px">${btns}</div></div>`;
+  const editBtn=id=>`<button class="btn btn-sm btn-outline" onclick="renameCategory('${id}')">✏</button>`;
+  const builtin=BUILTIN_CATS.map(c=>row(c.id,`built-in · ${used[c.id]||0} items`,editBtn(c.id))).join('');
+  const custom=(config.categories||[]).map(c=>row(c.id,`${used[c.id]||0} items`,editBtn(c.id)+`<button class="btn btn-sm btn-danger" onclick="deleteCategory('${c.id}')">🗑</button>`)).join('');
   el.innerHTML=builtin+custom;
+}
+
+async function renameCategory(id){
+  const isBuiltin=BUILTIN_CATS.some(c=>c.id===id);
+  const current=catLabel(id);
+  const input=prompt('Rename category',current);
+  if(input===null)return;
+  const label=input.replace(/[<>]/g,'').trim();
+  if(!label){toast('Name cannot be empty','warn');return;}
+  if(label===current)return;
+  const clash=[...BUILTIN_CATS,...(config.categories||[])].some(c=>c.id!==id&&catLabel(c.id).toLowerCase()===label.toLowerCase());
+  if(clash){toast('Another category already uses that name','warn');return;}
+  try{
+    if(isBuiltin){
+      const names={...(config.catNames||{}),[id]:label};
+      await db.collection('nb_config').doc('settings').set({catNames:names},{merge:true});
+      config.catNames=names;
+    }else{
+      const list=(config.categories||[]).map(c=>c.id===id?{...c,label}:c);
+      await db.collection('nb_config').doc('settings').set({categories:list},{merge:true});
+      config.categories=list;
+    }
+    renderCategoryList();refreshCategoryOptions();refreshCurrentTab();
+    toast(`Renamed to "${label}" ✓ (all products keep this category)`,'ok');
+  }catch(e){toast('Error: '+e.message,'err');}
 }
 
 async function addCategory(){
@@ -2151,7 +2217,7 @@ async function addCategory(){
   const id=label.toLowerCase().replace(/[^a-z0-9]/g,'');
   if(!id){toast('Use letters or numbers in the name','warn');return;}
   const existing=[...BUILTIN_CATS,...(config.categories||[])];
-  if(existing.some(c=>c.id===id||c.label.toLowerCase()===label.toLowerCase())){toast('That category already exists','warn');return;}
+  if(existing.some(c=>c.id===id||catLabel(c.id).toLowerCase()===label.toLowerCase())){toast('That category already exists','warn');return;}
   const list=[...(config.categories||[]),{id,label}];
   try{
     await db.collection('nb_config').doc('settings').set({categories:list},{merge:true});
@@ -2247,6 +2313,19 @@ async function resetAllStock(){
     toast(`All stock reset — ${products.length} items set to zero`,'ok');
   }catch(e){toast('Error: '+e.message,'err');}
 }
+
+// ─── Load saved branch names/settings as soon as the page opens (so login screen is correct after refresh) ───
+async function preloadConfig(){
+  try{
+    const snap=await db.collection('nb_config').doc('settings').get();
+    if(snap.exists){
+      const {pins,...rest}=snap.data(); // PINs are still only read at PIN entry
+      config={...config,...rest};
+      updateBranchNameLabels();
+    }
+  }catch(e){}
+}
+window.addEventListener('DOMContentLoaded',()=>{preloadConfig();});
 
 // ─── init date fields ───
 window.addEventListener('DOMContentLoaded',()=>{
